@@ -1,0 +1,423 @@
+/**
+  ******************************************************************************
+  * @file    power_pack.h
+  * @author  MCD Application Team
+  * @version V1.0.0
+  * @date    26-February-2016
+  * @brief   This file contains definitions for:
+  *          - LED available on STM32L4xx-Nucleo_32 Kit from STMicroelectronics
+  *          - 7 segment display from Gravitech
+  ******************************************************************************
+  * @attention
+  *
+  * <h2><center>&copy; COPYRIGHT(c) 2016 STMicroelectronics</center></h2>
+  *
+  * Redistribution and use in source and binary forms, with or without modification,
+  * are permitted provided that the following conditions are met:
+  *   1. Redistributions of source code must retain the above copyright notice,
+  *      this list of conditions and the following disclaimer.
+  *   2. Redistributions in binary form must reproduce the above copyright notice,
+  *      this list of conditions and the following disclaimer in the documentation
+  *      and/or other materials provided with the distribution.
+  *   3. Neither the name of STMicroelectronics nor the names of its contributors
+  *      may be used to endorse or promote products derived from this software
+  *      without specific prior written permission.
+  *
+  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  *
+  ******************************************************************************
+  */ 
+  
+/* Define to prevent recursive inclusion -------------------------------------*/
+#ifndef __POWER_PACK_H
+#define __POWER_PACK_H
+
+#ifdef __cplusplus
+ extern "C" {
+#endif
+
+/* Includes ------------------------------------------------------------------*/
+#include "stm32l4xx_hal.h"
+
+
+ /*##################### PA ###################################*/
+ #define USB_IN_ADCx_CHANNEL_PIN             GPIO_PIN_0			//ADC1_IN5
+ #define DC_IN_ADCx_CHANNEL_PIN              GPIO_PIN_1			//ADC1_IN6
+ #define CHG_OUT_ADCx_CHANNEL_PIN            GPIO_PIN_2			//ADC1_IN7
+ #define PMUX2_CHA_EN_PIN                  	 GPIO_PIN_3
+ #define PMUX1_CTRL_PIN                      GPIO_PIN_4
+ #define PMUX1_MODE_PIN                      GPIO_PIN_5
+ #define SMUX_SEL_PIN                        GPIO_PIN_6
+ #define BOOST_ENABEL_PIN                    GPIO_PIN_7
+ #define BOOST_9V_EN_PIN                     GPIO_PIN_8
+ #define SMB_SUSP_PIN                        GPIO_PIN_9
+ #define SMB_RESET_PIN                       GPIO_PIN_10
+ #define SMB_LPMODE_EN_PIN                   GPIO_PIN_11
+ #define LED1_PIN                			       GPIO_PIN_12
+ //#define PHONE_ATTACHED_PIN                GPIO_PIN_13
+ //#define LED1_PIN                          GPIO_PIN_14
+ #define LED2_PIN                            GPIO_PIN_15
+
+#define PMUX2_CHA_EN_PIN_GPIO_PORT            GPIOA
+#define PMUX1_CTRL_PIN_GPIO_PORT          		GPIOA
+#define PMUX1_MODE_PIN_GPIO_PORT              GPIOA
+#define SMUX_SEL_PIN_GPIO_PORT              	GPIOA
+#define BOOST_ENABEL_PIN_GPIO_PORT            GPIOA
+#define BOOST_9V_EN_PIN_GPIO_PORT          		GPIOA
+#define SMB_SUSP_PIN_GPIO_PORT              	GPIOA
+#define SMB_RESET_PIN_GPIO_PORT              	GPIOA
+#define SMB_LPMODE_EN_PIN_GPIO_PORT           GPIOA
+
+
+ /*##################### PB ###################################*/
+ #define SMB_CC_STS_PIN                     GPIO_PIN_0
+ #define SMB_STAT_PIN                      	GPIO_PIN_1
+ #define SMB_SYS_PIN                        GPIO_PIN_2
+ #define BOOST_OCP_INT_PIN                  GPIO_PIN_3
+ #define KEY_PIN                   					GPIO_PIN_4
+ #define PMUX2_CHB_EN_PIN                   GPIO_PIN_5
+ #define BSP_I2C1_SCL_PIN                	  GPIO_PIN_6
+ #define BSP_I2C1_SDA_PIN                	  GPIO_PIN_7
+ #define PMUX1_CHA_EN_PIN                   GPIO_PIN_8
+ #define PMUX1_CHB_EN_PIN                   GPIO_PIN_9
+ #define ACC_UART3_TX_PIN                   GPIO_PIN_10
+ #define ACC_UART3_RX_PIN                   GPIO_PIN_11
+ #define FG_INT_PIN                       	GPIO_PIN_12
+ #define BSP_I2C2_SCL_PIN                	  GPIO_PIN_13
+ #define BSP_I2C2_SDA_PIN                	  GPIO_PIN_14
+ #define LED3_PIN                           GPIO_PIN_15
+
+#define PMUX2_CHB_EN_PIN_GPIO_PORT          GPIOB
+#define PMUX1_CHA_EN_PIN_GPIO_PORT          GPIOB
+#define PMUX1_CHB_EN_PIN_GPIO_PORT          GPIOB
+
+
+ /*##################### PC ###################################*/
+ //#define SMB_CC_STS_PIN                    GPIO_PIN_0
+ //#define SMB_STAT_PIN                      GPIO_PIN_1
+ //#define SMB_SYS_PIN                       GPIO_PIN_2
+ //#define BOOST_OCP_INT_PIN                 GPIO_PIN_3
+ //#define KEY_PIN                  			   GPIO_PIN_4
+ //#define                   					 GPIO_PIN_5
+ //#define BSP_I2C1_SCL_PIN                	 GPIO_PIN_6
+ //#define BSP_I2C1_SDA_PIN                	 GPIO_PIN_7
+ //#define PMUX1_CHA_EN_PIN                  GPIO_PIN_8
+ //#define PMUX1_CHB_EN_PIN                  GPIO_PIN_9
+ //#define ACC_UART3_TX_PIN                  GPIO_PIN_10
+ #define PHONE_ATTACHED_PIN                  GPIO_PIN_11
+ //#define FG_INT_PIN                        GPIO_PIN_12
+ #define LED4_PIN                            GPIO_PIN_13
+ #define WLC_INT_PIN                		     GPIO_PIN_14
+ #define WLC_EN_PIN                          GPIO_PIN_15
+
+
+ #define WLC_EN_PIN_GPIO_PORT          			 GPIOC
+
+ /*##################### PH ###################################*/
+ #define CHG_PATH_EN_PIN                     GPIO_PIN_0
+ //#define SMB_STAT_PIN                      GPIO_PIN_1
+ //#define SMB_SYS_PIN                       GPIO_PIN_2
+ 
+ #define CHG_PATH_EN_PIN_GPIO_PORT           GPIOH
+
+ /*##################### I2C1 ###################################*/
+ /* User can use this section to tailor I2Cx instance used and associated resources */
+ /* Definition for I2C1 Pins */
+ #define BSP_I2C1                        I2C1
+ #define BSP_I2C1_CLK_ENABLE()           __HAL_RCC_I2C1_CLK_ENABLE()
+ #define BSP_I2C1_CLK_DISABLE()          __HAL_RCC_I2C1_CLK_DISABLE()
+ #define BSP_I2C1_FORCE_RESET()          __HAL_RCC_I2C1_FORCE_RESET()
+ #define BSP_I2C1_RELEASE_RESET()        __HAL_RCC_I2C1_RELEASE_RESET()
+ #define BSP_I2C1_GPIO_PORT              GPIOB      /* GPIOB */
+ #define BSP_I2C1_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOB_CLK_ENABLE()
+ #define BSP_I2C1_GPIO_CLK_DISABLE()     __HAL_RCC_GPIOB_CLK_DISABLE()
+ #define BSP_I2C1_SCL_SDA_AF             GPIO_AF4_I2C1
+
+ /* Maximum Timeout values for flags waiting loops. These timeouts are not based
+    on accurate values, they just guarantee that the application will not remain
+    stuck if the I2C communication is corrupted.
+    You may modify these timeout values depending on CPU frequency and application
+    conditions (interrupts routines ...). */
+ #define BSP_I2C1_TIMEOUT_MAX            1000
+
+ /* I2C TIMING is calculated in case of the I2C Clock source is the SYSCLK = 80 MHz */
+ /* Set 0x40E03E53 value to reach 100 KHz speed (Rise time = 640ns, Fall time = 20ns) */
+ #define I2C1_TIMING                     0x40E03E53
+
+ /* Definition for I2Cx's NVIC */
+ #define BSP_I2C1_EV_IRQn                    I2C1_EV_IRQn
+ #define BSP_I2C1_ER_IRQn                    I2C1_ER_IRQn
+ #define BSP_I2C1_EV_IRQHandler              I2C1_EV_IRQHandler
+ #define BSP_I2C1_ER_IRQHandler              I2C1_ER_IRQHandler
+
+ /*##################### I2C2 ###################################*/
+  /* User can use this section to tailor I2Cx instance used and associated resources */
+  /* Definition for I2C2 Pins */
+  #define BSP_I2C2                        I2C2
+  #define BSP_I2C2_CLK_ENABLE()           __HAL_RCC_I2C2_CLK_ENABLE()
+  #define BSP_I2C2_CLK_DISABLE()          __HAL_RCC_I2C2_CLK_DISABLE()
+  #define BSP_I2C2_FORCE_RESET()          __HAL_RCC_I2C2_FORCE_RESET()
+  #define BSP_I2C2_RELEASE_RESET()        __HAL_RCC_I2C2_RELEASE_RESET()
+  #define BSP_I2C2_GPIO_PORT              GPIOB      /* GPIOB */
+  #define BSP_I2C2_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOB_CLK_ENABLE()
+  #define BSP_I2C2_GPIO_CLK_DISABLE()     __HAL_RCC_GPIOB_CLK_DISABLE()
+  #define BSP_I2C2_SCL_SDA_AF             GPIO_AF4_I2C2
+
+  /* Maximum Timeout values for flags waiting loops. These timeouts are not based
+     on accurate values, they just guarantee that the application will not remain
+     stuck if the I2C communication is corrupted.
+     You may modify these timeout values depending on CPU frequency and application
+     conditions (interrupts routines ...). */
+  #define BSP_I2C2_TIMEOUT_MAX            1000
+
+  /* I2C TIMING is calculated in case of the I2C Clock source is the SYSCLK = 80 MHz */
+  /* Set 0x40E03E53 value to reach 100 KHz speed (Rise time = 640ns, Fall time = 20ns) */
+  #define I2C2_TIMING                     0x40E03E53
+
+ /* Definition for I2Cx's NVIC */
+ #define BSP_I2C2_EV_IRQn                    I2C2_EV_IRQn
+ #define BSP_I2C2_ER_IRQn                    I2C2_ER_IRQn
+ #define BSP_I2C2_EV_IRQHandler              I2C2_EV_IRQHandler
+ #define BSP_I2C2_ER_IRQHandler              I2C2_ER_IRQHandler
+
+
+ /*##################### USART3 ###################################*/
+ /* communicate with phone */
+ #define ACC_UART3                           USART3
+ #define ACC_UART3_CLK_ENABLE()              __HAL_RCC_USART3_CLK_ENABLE()
+ #define ACC_UART3_RX_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOB_CLK_ENABLE()
+ #define ACC_UART3_TX_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOB_CLK_ENABLE()
+
+ #define ACC_UART3_FORCE_RESET()             __HAL_RCC_USART3_FORCE_RESET()
+ #define ACC_UART3_RELEASE_RESET()           __HAL_RCC_USART3_RELEASE_RESET()
+
+ /* Definition for ACC_UART3 Pins */
+ 
+ #define ACC_UART3_TX_GPIO_PORT              GPIOB
+ #define ACC_UART3_TX_AF                     GPIO_AF7_USART3 
+ #define ACC_UART3_RX_GPIO_PORT              GPIOB
+ #define ACC_UART3_RX_AF                     GPIO_AF7_USART3
+
+ /* Definition for ACC_UART3's NVIC */
+ #define ACC_UART3_IRQn                      USART3_IRQn
+ #define ACC_UART3_IRQHandler                USART3_IRQHandler
+
+ /* Size of Trasmission buffer */
+ #define TXBUFFERSIZE                      (COUNTOF(aTxBuffer) - 1)
+ /* Size of Reception buffer */
+ #define RXBUFFERSIZE                      TXBUFFERSIZE
+
+ typedef enum
+ {
+   LED1 = 0,
+   LED2,
+   LED3,
+   LED4
+ } Led_TypeDef;
+
+
+ #define LEDn                               4
+
+
+#define LED1_GPIO_PORT                     GPIOA
+#define LED1_GPIO_CLK_ENABLE()             __HAL_RCC_GPIOA_CLK_ENABLE()
+#define LED1_GPIO_CLK_DISABLE()            __HAL_RCC_GPIOA_CLK_DISABLE()
+
+#define LED2_GPIO_PORT                     GPIOA
+#define LED2_GPIO_CLK_ENABLE()             __HAL_RCC_GPIOA_CLK_ENABLE()
+#define LED2_GPIO_CLK_DISABLE()            __HAL_RCC_GPIOA_CLK_DISABLE()
+
+#define LED3_GPIO_PORT                     GPIOB
+#define LED3_GPIO_CLK_ENABLE()             __HAL_RCC_GPIOB_CLK_ENABLE()  
+#define LED3_GPIO_CLK_DISABLE()            __HAL_RCC_GPIOB_CLK_DISABLE()  
+
+#define LED4_GPIO_PORT                     GPIOC
+#define LED4_GPIO_CLK_ENABLE()             __HAL_RCC_GPIOC_CLK_ENABLE()
+#define LED4_GPIO_CLK_DISABLE()            __HAL_RCC_GPIOC_CLK_DISABLE()
+
+#define LEDx_GPIO_CLK_ENABLE()    do {LED1_GPIO_CLK_ENABLE(); LED2_GPIO_CLK_ENABLE();LED3_GPIO_CLK_ENABLE();LED4_GPIO_CLK_ENABLE();} while(0)
+#define LEDx_GPIO_CLK_DISABLE()   do {LED1_GPIO_CLK_DISABLE();LED2_GPIO_CLK_DISABLE();LED3_GPIO_CLK_DISABLE();LED4_GPIO_CLK_DISABLE();)while(0)
+
+
+#define OUTPUT_GPIOA_PORT                     GPIOA
+#define OUTPUT_GPIOA_CLK_ENABLE()             __HAL_RCC_GPIOA_CLK_ENABLE()
+#define OUTPUT_GPIOA_CLK_DISABLE()            __HAL_RCC_GPIOA_CLK_DISABLE()
+
+#define OUTPUT_GPIOB_PORT                     GPIOB
+#define OUTPUT_GPIOB_CLK_ENABLE()             __HAL_RCC_GPIOB_CLK_ENABLE()
+#define OUTPUT_GPIOB_CLK_DISABLE()            __HAL_RCC_GPIOB_CLK_DISABLE()
+
+#define OUTPUT_GPIOC_PORT                     GPIOC
+#define OUTPUT_GPIOC_CLK_ENABLE()             __HAL_RCC_GPIOC_CLK_ENABLE()
+#define OUTPUT_GPIOC_CLK_DISABLE()            __HAL_RCC_GPIOC_CLK_DISABLE()
+
+#define OUTPUT_GPIOH_PORT                     GPIOH
+#define OUTPUT_GPIOH_CLK_ENABLE()             __HAL_RCC_GPIOH_CLK_ENABLE()
+#define OUTPUT_GPIOH_CLK_DISABLE()            __HAL_RCC_GPIOH_CLK_DISABLE()
+
+/**
+  * @brief STM32L4XX NUCLEO BSP Driver version number V1.0.0
+  */
+#define __STM32L4XX_NUCLEO_32_BSP_VERSION_MAIN   (0x01) /*!< [31:24] main version */
+#define __STM32L4XX_NUCLEO_32_BSP_VERSION_SUB1   (0x00) /*!< [23:16] sub1 version */
+#define __STM32L4XX_NUCLEO_32_BSP_VERSION_SUB2   (0x00) /*!< [15:8]  sub2 version */
+#define __STM32L4XX_NUCLEO_32_BSP_VERSION_RC     (0x00) /*!< [7:0]  release candidate */
+#define __STM32L4XX_NUCLEO_32_BSP_VERSION        ((__STM32L4XX_NUCLEO_32_BSP_VERSION_MAIN << 24)\
+                                                 |(__STM32L4XX_NUCLEO_32_BSP_VERSION_SUB1 << 16)\
+                                                 |(__STM32L4XX_NUCLEO_32_BSP_VERSION_SUB2 << 8 )\
+                                                 |(__STM32L4XX_NUCLEO_32_BSP_VERSION_RC))
+
+/* Definition for ADCx clock resources */
+#define ADCx                            ADC1
+#define ADCx_CLK_ENABLE()               __HAL_RCC_ADC_CLK_ENABLE()
+#define ADCx_CHANNEL_GPIO_CLK_ENABLE()  __HAL_RCC_GPIOA_CLK_ENABLE()
+
+#define DMAx_CHANNELx_CLK_ENABLE()      __HAL_RCC_DMA1_CLK_ENABLE()
+
+#define ADCx_FORCE_RESET()              __HAL_RCC_ADC_FORCE_RESET()
+#define ADCx_RELEASE_RESET()            __HAL_RCC_ADC_RELEASE_RESET()
+
+/* Definition for ADCx Channel Pin */
+#define ADCx_CHANNEL_PIN_CLK_ENABLE()   __HAL_RCC_GPIOA_CLK_ENABLE()
+
+
+#define ADCx_CHANNEL_GPIO_PORT          GPIOA
+
+/* Definition for ADCx's Channel */
+#define USB_IN_ADCx_CHANNEL                    	ADC_CHANNEL_5
+#define DC_IN_ADCx_CHANNEL                    	ADC_CHANNEL_6
+#define CHG_OUT_ADCx_CHANNEL                    ADC_CHANNEL_7
+
+typedef struct
+{
+	GPIO_PinState LPMODE_EN;
+	GPIO_PinState SUSP;
+	GPIO_PinState RST;
+	GPIO_PinState SMUX_SEL;
+}	
+SMB_IO_Ctrl;	 
+	 
+
+typedef struct
+{
+	GPIO_PinState MODE;
+	GPIO_PinState CTRL;
+	GPIO_PinState VINA_EN;
+	GPIO_PinState VINB_EN;	
+}	
+PMUX1_IO_Ctrl;
+
+typedef struct
+{
+	GPIO_PinState MODE;
+	GPIO_PinState VINA_EN;
+	GPIO_PinState VINB_EN;
+}	
+PMUX2_IO_Ctrl;
+
+typedef struct
+{
+	GPIO_PinState ENABLE;
+	GPIO_PinState EN_9V;
+}	
+BOOST_IO_Ctrl;
+
+typedef struct
+{
+	SMB_IO_Ctrl SMB;
+	PMUX1_IO_Ctrl PMUX1;
+	PMUX2_IO_Ctrl PMUX2;
+	BOOST_IO_Ctrl BOOST;
+}	
+PB_IO;
+
+
+
+
+
+/**
+  * @}
+  */
+
+
+
+/** @defgroup STM32L4XX_NUCLEO_32_Exported_Functions Exported Functions
+  * @{
+  */
+
+uint32_t         BSP_GetVersion(void);
+void             BSP_LED_Init(void);
+void             BSP_LED_On(Led_TypeDef Led);
+void             BSP_LED_Off(Led_TypeDef Led);
+void             BSP_LED_Toggle(Led_TypeDef Led);
+void 						 BSP_LED_Light(uint8_t Led);
+/**
+  * @}
+  */ 
+/* I2C1 bus function */
+/* Link function for I2C peripherals */
+void               BSP_I2C1_Init(void);
+void               BSP_I2C1_Error (void);
+void               BSP_I2C1_MspInit(I2C_HandleTypeDef *hi2c);
+void 							 BSP_I2C1_Write(uint8_t Addr, uint8_t Reg, uint16_t RegAddSize, uint8_t Value);
+uint8_t 					 BSP_I2C1_Read(uint8_t Addr, uint8_t Reg ,uint16_t RegAddSize);
+HAL_StatusTypeDef  BSP_I2C1_WriteBuffer(uint16_t Addr, uint8_t Reg, uint16_t RegSize, uint8_t *pBuffer, uint16_t Length);
+HAL_StatusTypeDef  BSP_I2C1_ReadBuffer(uint16_t Addr, uint8_t Reg, uint16_t RegSize, uint8_t *pBuffer, uint16_t Length);
+HAL_StatusTypeDef  BSP_I2C1_IsDeviceReady(uint16_t DevAddress, uint32_t Trials);
+
+void               BSP_I2C2_Init(void);
+void               BSP_I2C2_Error (void);
+void               BSP_I2C2_MspInit(I2C_HandleTypeDef *hi2c);
+void 							 BSP_I2C2_Write(uint8_t Addr, uint16_t Reg, uint16_t RegAddSize, uint8_t Value);
+uint8_t 					 BSP_I2C2_Read(uint8_t Addr, uint16_t Reg,uint16_t RegAddSize);
+HAL_StatusTypeDef  BSP_I2C2_WriteBuffer(uint16_t Addr, uint16_t Reg, uint16_t RegSize, uint8_t *pBuffer, uint16_t Length);
+HAL_StatusTypeDef  BSP_I2C2_ReadBuffer(uint16_t Addr, uint16_t Reg, uint16_t RegSize, uint8_t *pBuffer, uint16_t Length);
+HAL_StatusTypeDef  BSP_I2C2_IsDeviceReady(uint16_t DevAddress, uint32_t Trials);
+
+void BSP_POWER_PACK_Init(void);
+void BSP_UART3_Init(void);
+
+static void BSP_SMB_CC_IRQHandler_Config(void);
+static void BSP_SMB_STAT_IRQHandler_Config(void);
+static void BSP_SMB_SYSOK_IRQHandler_Config(void);
+static void BSP_BOOST_OVP_IRQHandler_Config(void);
+static void BSP_KEY_IRQHandler_Config(void);
+static void BSP_EXIT15_10_IRQHandler_Config(void);
+
+void BSP_IO_Config(PB_IO *io_cfg);
+void BSP_IO_DEFAULT(void);
+void BSP_WLC2SMB(void);
+void BSP_USB2SMB(void);
+void BSP_USB2PHONE(void);
+void BSP_WLC2PHONE(void);
+void BSP_BOOST2PHONE(uint8_t enable_9v);
+
+/**
+  * @}
+  */
+
+/**
+  * @}
+  */ 
+
+/**
+  * @}
+  */ 
+    
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __POWER_PACK_H*/
+
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+
