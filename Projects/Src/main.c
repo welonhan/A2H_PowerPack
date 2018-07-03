@@ -111,6 +111,7 @@ PACK_INFO pack_info;
 SMB_TADC smb_tadc;
 
 USB_TYPE *usb_type_temp;
+SMB_IN_STATE in_state;
 
 typedef enum
 {
@@ -220,18 +221,31 @@ int main(void)
 		pack_info.ATTACH=1;
 		printf("phone attached!!\n\r");
 	}
-	
-	if(BSP_SMB_INT_Type()==USB_PLUGIN)
+	BSP_SMB_INT_Type(&in_state);
+	if(in_state.USBIN==1)
 	{
 		pack_info.USB=1;
 		printf("USB plugin!!\n\r");
 		//BSM_SMB_Charging(usb_type_temp);
 	}
-	else if(BSP_SMB_INT_Type()==USB_PLUGOUT)
+	else if(in_state.USBIN==0)
 	{
 		pack_info.USB=0;
 		printf("USB plugout!!\n\r");
 	}	
+	
+	if(in_state.DCIN==1)
+	{
+		pack_info.PHONE_USB=1;
+		printf("DCIN plugin!!\n\r");
+		//BSM_SMB_Charging(usb_type_temp);
+	}
+	else if(in_state.DCIN==0)
+	{
+		pack_info.PHONE_USB=0;
+		printf("DCIN plugout!!\n\r");
+	}	
+	
 	set_pack_status(&pack_info);
 	
 	/* Enable Power Clock */
@@ -367,10 +381,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
   else if (GPIO_Pin == SMB_STAT_PIN)
   {
-    //UartReady = SET; 
-	
-		/* Toggle LED2 */    
-		if(HAL_GPIO_ReadPin(SMB_STAT_PIN_GPIO_PORT,SMB_STAT_PIN)==0)
+    if(HAL_GPIO_ReadPin(SMB_STAT_PIN_GPIO_PORT,SMB_STAT_PIN)==0)
 		{
 			if((xSemaphoreGiveFromISR( xCountingSemaphore, &xHigherPriorityTaskWoken_smb))!=pdPASS)
 				printf("UART IRQ error\n\r");	
@@ -484,6 +495,7 @@ static void ADC_task2(void const *argument)
 {
 	uint32_t vrefint_data,vrefint_cal;
 	vrefint_cal=(uint32_t)(*VREFINT_CAL_ADDR);	
+	portBASE_TYPE xStatus;
 	
 	for(;;)
 	{
@@ -497,7 +509,19 @@ static void ADC_task2(void const *argument)
 			
 		BSP_SMB_TADC(&smb_tadc);
 		pack_info.PACK_SOC=BSP_CW_Get_Capacity();
+		uint16_t xTicksToWait=100 / portTICK_RATE_MS;	
+	
+		if(BSM_SMB_High_Duty())
+		{
+			pack_info.USB=0;
+			xStatus=xQueueSendToBack( xQueue_pack_info, &pack_info, xTicksToWait );
+			if( xStatus != pdPASS )
+			{
+				printf("Send to queue error!\n\r");	
+			}			
+		}
 		vTaskDelay(500);
+		
 	}
 }
 
@@ -518,12 +542,10 @@ static void CHG_task3(void const *argument)
 
 static void SMB_task4(void const *argument)
 {
-	uint8_t apsd_done=0;
 	USB_TYPE usb_type;
-	SMB_INT int_type;
 	portBASE_TYPE xStatus;
 	uint16_t xTicksToWait=100 / portTICK_RATE_MS;	
-	SMB_TADC *smb_tadc;
+	
 	uint8_t pulse,i;
 	uint32_t max_current,current;
 	
@@ -533,17 +555,12 @@ static void SMB_task4(void const *argument)
 	for(;;)
 	{
 		xSemaphoreTake( xCountingSemaphore, portMAX_DELAY );
-		int_type=BSP_SMB_INT_Type();		
+		BSP_SMB_INT_Type(&in_state);		
 		
-		if(int_type==USB_PLUGIN)
+		if(in_state.USBIN==1)
 		{
 			BSP_SMB_USBIN_Exit_Suspend();
-			pack_info.USB=1;		
-			xStatus=xQueueSendToBack( xQueue_pack_info, &pack_info, xTicksToWait );
-			if( xStatus != pdPASS )
-			{
-				printf("Send to queue error!\n\r");	
-			}		
+			pack_info.USB=1;				
 			vTaskDelay(3000);
 			
 			BSP_SMB_USBIN_Status(&usb_type);
@@ -552,10 +569,11 @@ static void SMB_task4(void const *argument)
 			{
 				i=0;
 				max_current=0;
+				BSM_SMB_QC2_Force_5V();
 				while(i<20)
 				{
 					BSP_SMB_BAT_Current_Start();
-					vTaskDelay(10);
+					vTaskDelay(80);
 					current=BSP_SMB_BAT_Current();
 					if(current>max_current)
 					{
@@ -568,7 +586,7 @@ static void SMB_task4(void const *argument)
 				if(pulse!=0)
 				{
 					i=20-pulse;
-					printf("QC3 pulse=%d",pulse);
+					printf("QC3 pulse=%d\n\r",pulse);
 					while(i>0)
 					{
 						BSM_SMB_QC3_Single_Dec();
@@ -584,17 +602,27 @@ static void SMB_task4(void const *argument)
 			}			
 			
 		}
-		else
+		else if(in_state.USBIN==0)
 		{
-			pack_info.USB=0;
-			xStatus=xQueueSendToBack( xQueue_pack_info, &pack_info, xTicksToWait );
-			if( xStatus != pdPASS )
-			{
-				printf("Send to queue error!\n\r");	
-			}		
+			pack_info.USB=0;			
 			BSP_SMB_USBIN_Suspend();
 		}
-			
+		
+		if(in_state.DCIN==1)
+		{			
+			pack_info.PHONE_USB=1;			
+			BSP_SMB_DCIN_Exit_Suspend();			
+		}
+		else if(in_state.DCIN==0)
+		{
+			pack_info.PHONE_USB=0;			
+			BSP_SMB_DCIN_Suspend();
+		}		
+		xStatus=xQueueSendToBack( xQueue_pack_info, &pack_info, xTicksToWait );
+		if( xStatus != pdPASS )
+		{
+			printf("Send to queue error!\n\r");	
+		}			
 	}			
 }
 
@@ -982,7 +1010,7 @@ PACK_STATUS get_pack_status(PACK_INFO *ptr)
 		status_pack=STATUS_USB2PHONE;
 	else if((ptr->ATTACH==1)&&	(ptr->USB==0)&&(ptr->PHONE_USB==0)&&(ptr->PACK_SOC>3))
 		status_pack=STATUS_BOOST2PHONE;
-	else if((ptr->ATTACH==1)&&	(ptr->USB==0)&&(ptr->PHONE_USB==1)&&(ptr->PHONE_SOC>90))
+	else if((ptr->ATTACH==1)&&	(ptr->USB==0)&&(ptr->PHONE_USB==1))
 		status_pack=STATUS_PHONE2PACK;
 	return status_pack;
 }

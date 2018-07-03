@@ -661,7 +661,7 @@ void BSP_ATTACH_IRQHandler_Config(void)
 	PHONE_ATTACHED_PIN_CLK_ENABLE() ;
 	  
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;  
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;  
 	
 	GPIO_InitStruct.Pin = PHONE_ATTACHED_PIN;
   HAL_GPIO_Init(PHONE_ATTACHED_PIN_GPIO_PORT, &GPIO_InitStruct);	 
@@ -731,9 +731,9 @@ void BSP_STANDBY(void)
 	io_ctrl.SMB.SUSP						=GPIO_PIN_SET;
 	io_ctrl.SMB.RST							=GPIO_PIN_SET;	
 	
-	io_ctrl.PMUX1.MODE					=GPIO_PIN_RESET;
-	io_ctrl.PMUX1.CTRL					=GPIO_PIN_RESET;
-	io_ctrl.PMUX1.CHA_EN				=GPIO_PIN_SET;
+	io_ctrl.PMUX1.MODE					=GPIO_PIN_SET;
+	io_ctrl.PMUX1.CTRL					=GPIO_PIN_SET;
+	io_ctrl.PMUX1.CHA_EN				=GPIO_PIN_RESET;
 	io_ctrl.PMUX1.CHB_EN				=GPIO_PIN_RESET;	
 	
 	io_ctrl.BOOST.ENABLE				=GPIO_PIN_RESET;

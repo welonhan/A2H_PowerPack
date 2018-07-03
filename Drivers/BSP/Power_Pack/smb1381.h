@@ -52,7 +52,9 @@ typedef enum
 	USB_SRC_CHANGE,
 	USB_CURRENT_LIMIT,
 	USB_CC_CHANGE,
-	USB_COLLAPSE
+	USB_COLLAPSE,
+	DCIN_PLUGIN,
+	DCIN_PLUGOUT
 }SMB_INT;
 
 typedef struct
@@ -72,19 +74,25 @@ typedef struct
 	uint32_t CH7_VIN_VOL;
 }SMB_TADC;
 
+typedef struct
+{
+	uint8_t USBIN;
+	uint8_t DCIN;
+}SMB_IN_STATE;
+
 void BSP_SMB_Enable(void);
 void BSP_SMB_Disable(void);	 
 void BSP_SMB_Init(void);
 uint8_t BSP_SMB_Get_ID(uint8_t *smb_revid);
 void BSP_SMB_En_APSD_HVDCP(void);
 uint8_t BSP_SMB_APSD_Done(void);
-uint8_t BSP_SMB_USBIN_Status(USB_TYPE *usb_type);
+void BSP_SMB_USBIN_Status(USB_TYPE *usb_type);
 uint8_t BSP_SMB_SDP_Done(void);
 void BSP_SMB_USBIN_Limit(uint16_t limit_mA);
 //void BSP_SMB_USBIN_Susp(void);
 void BSP_SMB_USBIN_HC_Mode(void);
 void BSP_SMB_HC_Config(void);
-SMB_INT BSP_SMB_INT_Type(void);
+//SMB_INT BSP_SMB_INT_Type(void);
 void BSP_SMB_TADC(SMB_TADC *smb_tadc);
 void BSM_SMB_Charging(USB_TYPE *usb_type);
 void BSM_SMB_QC3_Single_Inc(void);
@@ -96,6 +104,10 @@ void BSP_SMB_USBIN_Exit_Suspend(void);
 void BSP_SMB_USBIN_Suspend(void);
 uint32_t BSP_SMB_BAT_Current(void);
 void BSP_SMB_BAT_Current_Start(void);
+void BSP_SMB_INT_Type(SMB_IN_STATE *in_state);
+void BSP_SMB_DCIN_Exit_Suspend(void);
+void BSP_SMB_DCIN_Suspend(void);
+uint8_t BSM_SMB_High_Duty(void);
 
 #ifdef __cplusplus
 }

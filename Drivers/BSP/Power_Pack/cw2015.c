@@ -257,8 +257,6 @@ uint8_t BSP_CW_Release_Alrt_Pin(void)
 	uint8_t ret = 0;
 	uint8_t reg_val;
 	uint8_t alrt;
-	
-
 	ret = cw_read(REG_RRT_ALERT, &reg_val);
 	if (ret) {
 			return 1;

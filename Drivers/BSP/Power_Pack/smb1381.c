@@ -20,12 +20,32 @@ void BSP_SMB_Enable(void)
 
 void BSP_SMB_Init(void)
 {
-	HAL_StatusTypeDef status;
+	/******************************MISC INT**************************************/
+	//SMB STAT INT use level triggering
+	if((BSP_I2C2_Write(SMB_ADDRESS, 0x1611, I2C_MEMADD_SIZE_16BIT, 0x00))!=HAL_OK)
+		printf("SBM1381 INT level tringgering setting error!\n\r");
 	
-	//status=smb138x_init_hw();
-	//if(status!=HAL_OK)
-	//	printf("smb138x init hw error!\n\r");	
+	//SMB STAT INT polarity high, disable high level int triggering
+	if((BSP_I2C2_Write(SMB_ADDRESS, 0x1612, I2C_MEMADD_SIZE_16BIT, 0x00))!=HAL_OK)
+		printf("SBM1381 INT polarity setting error!\n\r");
 	
+	//SMB STAT INT polarity low, 1=level low or falling edge
+	if((BSP_I2C2_Write(SMB_ADDRESS, 0x1613, I2C_MEMADD_SIZE_16BIT, 0xFF))!=HAL_OK)
+		printf("SBM1381 INT low level setting error!\n\r");
+	
+	//disable int
+	if((BSP_I2C2_Write(SMB_ADDRESS, 0x1616, I2C_MEMADD_SIZE_16BIT, 0xFF))!=HAL_OK)
+		printf("SBM1381 INT enable setting error!\n\r");
+	
+	//enable int
+	//if((BSP_I2C2_Write(SMB_ADDRESS, 0x1615, I2C_MEMADD_SIZE_16BIT, 0x10))!=HAL_OK)
+	//	printf("SBM1381 INT enable setting error!\n\r");	
+	
+	//clear pending int
+	BSP_I2C2_Write(SMB_ADDRESS, 0x1614, I2C_MEMADD_SIZE_16BIT, 0xff);
+	/******************************MISC INT**************************************/
+	
+	/******************************USB IN**************************************/
 	//SMB STAT INT use level triggering
 	if((BSP_I2C2_Write(SMB_ADDRESS, 0x1311, I2C_MEMADD_SIZE_16BIT, 0x00))!=HAL_OK)
 		printf("SBM1381 INT level tringgering setting error!\n\r");
@@ -48,6 +68,40 @@ void BSP_SMB_Init(void)
 	
 	//clear pending int
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1314, I2C_MEMADD_SIZE_16BIT, 0xff);
+	/******************************USB IN**************************************/
+	
+	/******************************DC IN**************************************/
+	//SMB STAT INT use level triggering
+	if((BSP_I2C2_Write(SMB_ADDRESS, 0x1411, I2C_MEMADD_SIZE_16BIT, 0x00))!=HAL_OK)
+		printf("SBM1381 INT level tringgering setting error!\n\r");
+	
+	//SMB STAT INT polarity high, disable high level int triggering
+	if((BSP_I2C2_Write(SMB_ADDRESS, 0x1412, I2C_MEMADD_SIZE_16BIT, 0x00))!=HAL_OK)
+		printf("SBM1381 INT polarity setting error!\n\r");
+	
+	//SMB STAT INT polarity low, 1=level low or falling edge
+	if((BSP_I2C2_Write(SMB_ADDRESS, 0x1413, I2C_MEMADD_SIZE_16BIT, 0xFF))!=HAL_OK)
+		printf("SBM1381 INT low level setting error!\n\r");
+	
+	//disable int
+	if((BSP_I2C2_Write(SMB_ADDRESS, 0x1416, I2C_MEMADD_SIZE_16BIT, 0xFF))!=HAL_OK)
+		printf("SBM1381 INT enable setting error!\n\r");
+	
+	//enable int
+	if((BSP_I2C2_Write(SMB_ADDRESS, 0x1415, I2C_MEMADD_SIZE_16BIT, 0x10))!=HAL_OK)
+		printf("SBM1381 INT enable setting error!\n\r");	
+	
+	//clear pending int
+	BSP_I2C2_Write(SMB_ADDRESS, 0x1414, I2C_MEMADD_SIZE_16BIT, 0xff);
+	
+	BSP_I2C2_Write(SMB_ADDRESS, 0x1460, I2C_MEMADD_SIZE_16BIT, 0x08);		//DC IN allow 5V to 9V
+	BSP_I2C2_Write(SMB_ADDRESS, 0x1470, I2C_MEMADD_SIZE_16BIT, 0x52);		//DC IN current limit to 2A
+	
+	BSP_I2C2_Write(SMB_ADDRESS, 0x1440, I2C_MEMADD_SIZE_16BIT, 0x1);		//suspend
+	
+	/*********************************DC IN******************************************/
+	
+	
 	
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1060, I2C_MEMADD_SIZE_16BIT, 0x24);		//0.9A precharge
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1061, I2C_MEMADD_SIZE_16BIT, 0x80);		//3.2A fast charge
@@ -65,23 +119,19 @@ void BSP_SMB_Init(void)
 		
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1370, I2C_MEMADD_SIZE_16BIT, 0x6C);		//USB IN INPUT CURRENT LIMIT TO 2.7A
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1380, I2C_MEMADD_SIZE_16BIT, 0x84);		//EN AICL
-	
-	//cc
-	BSP_I2C2_Write(SMB_ADDRESS, 0x1358, I2C_MEMADD_SIZE_16BIT, 0x00);	
+		
+	BSP_I2C2_Write(SMB_ADDRESS, 0x1358, I2C_MEMADD_SIZE_16BIT, 0x00);		//Type -c cc
 	
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1360, I2C_MEMADD_SIZE_16BIT, 0x08);	
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1362, I2C_MEMADD_SIZE_16BIT, 0x5c);	
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1363, I2C_MEMADD_SIZE_16BIT, 0x34);	
-	BSP_I2C2_Write(SMB_ADDRESS, 0x1366, I2C_MEMADD_SIZE_16BIT, 0x03);	
+	BSP_I2C2_Write(SMB_ADDRESS, 0x1366, I2C_MEMADD_SIZE_16BIT, 0x03);		
 	
-	//suspend
-	BSP_I2C2_Write(SMB_ADDRESS, 0x1340, I2C_MEMADD_SIZE_16BIT, 0x1);	
-	
-	//enabel TADC
-	BSP_I2C2_Write(SMB_ADDRESS, 0x3646, I2C_MEMADD_SIZE_16BIT, 0x80);	
-	
-	//enable charging
-	BSP_I2C2_Write(SMB_ADDRESS, 0x1042, I2C_MEMADD_SIZE_16BIT, 0x01);
+	BSP_I2C2_Write(SMB_ADDRESS, 0x1340, I2C_MEMADD_SIZE_16BIT, 0x00);		//suspend
+		
+	BSP_I2C2_Write(SMB_ADDRESS, 0x3646, I2C_MEMADD_SIZE_16BIT, 0x80);		//enabel TADC
+		
+	BSP_I2C2_Write(SMB_ADDRESS, 0x1042, I2C_MEMADD_SIZE_16BIT, 0x01);		//enable charging
 }
 
 void BSP_SMB_En_APSD_HVDCP(void)
@@ -139,6 +189,16 @@ void BSP_SMB_USBIN_Exit_Suspend(void)
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1340, I2C_MEMADD_SIZE_16BIT, 0x0);	
 }
 
+void BSP_SMB_DCIN_Suspend(void)
+{
+	BSP_I2C2_Write(SMB_ADDRESS, 0x1440, I2C_MEMADD_SIZE_16BIT, 0x1);	
+}
+
+void BSP_SMB_DCIN_Exit_Suspend(void)
+{
+	BSP_I2C2_Write(SMB_ADDRESS, 0x1440, I2C_MEMADD_SIZE_16BIT, 0x0);	
+}
+
 void BSP_SMB_HC_Config(void)
 {
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1060, I2C_MEMADD_SIZE_16BIT, 0x24);		//0.9A precharge
@@ -156,10 +216,7 @@ void BSP_SMB_HC_Config(void)
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1092, I2C_MEMADD_SIZE_16BIT, 0x32);		//JEITA FCC MINUS 2000mA
 		
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1370, I2C_MEMADD_SIZE_16BIT, 0x6C);		//USB IN INPUT CURRENT LIMIT TO 2.7A
-	BSP_I2C2_Write(SMB_ADDRESS, 0x1380, I2C_MEMADD_SIZE_16BIT, 0x14);		//EN AICL
-	
-	//Type -c
-	
+	BSP_I2C2_Write(SMB_ADDRESS, 0x1380, I2C_MEMADD_SIZE_16BIT, 0x14);		//EN AICL	
 	
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1366, I2C_MEMADD_SIZE_16BIT, 0x03);
 	
@@ -171,7 +228,7 @@ void BSP_SMB_USBIN_HC_Mode(void)
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1366, I2C_MEMADD_SIZE_16BIT, 0x0);	
 }
 
-uint8_t BSP_SMB_USBIN_Status(USB_TYPE *usb_type)
+void BSP_SMB_USBIN_Status(USB_TYPE *usb_type)
 {
 	uint8_t temp;
 	
@@ -251,22 +308,26 @@ uint8_t BSP_SMB_USBIN_Status(USB_TYPE *usb_type)
 	}	
 }
 
-SMB_INT BSP_SMB_INT_Type(void)
+void BSP_SMB_INT_Type(SMB_IN_STATE *in_state)
 {
 		uint8_t temp;	
 		
 		BSP_I2C2_Write(SMB_ADDRESS, 0x1314, I2C_MEMADD_SIZE_16BIT, 0xff);
+		BSP_I2C2_Write(SMB_ADDRESS, 0x1414, I2C_MEMADD_SIZE_16BIT, 0xff);
+		BSP_I2C2_Write(SMB_ADDRESS, 0x1614, I2C_MEMADD_SIZE_16BIT, 0xff);
+	
 		temp=BSP_I2C2_Read(SMB_ADDRESS, 0x1310,I2C_MEMADD_SIZE_16BIT);
 		printf("USBIN STATUS=0x%x\n\r",temp);				
 		
+		/*	
 		if(temp&0x01)
 		{	
 			printf("USB collapse!\n\r");	
-				return USB_COLLAPSE;	
+			in_state->USBIN=0;	
 			//if((BSP_I2C2_Write(SMB_ADDRESS, 0x1314, I2C_MEMADD_SIZE_16BIT, 0x01))!=HAL_OK)
 			//	printf("clear USB collapse latched error!\n\r");	
 		}	
-		/*	
+		
 		if(temp&0x02)
 		{	
 			printf("USBIN cross 3V6!\n\r");	
@@ -289,34 +350,63 @@ SMB_INT BSP_SMB_INT_Type(void)
 		if(temp&0x10)
 		{	
 			printf("USB plug in!\n\r");	
-				return USB_PLUGIN;			
+			in_state->USBIN=1;
 		}
-		else
+		else if ((temp&0x10)==0)
 		{	
 			printf("USB plug out!\n\r");	
-			return USB_PLUGOUT;			
-		}
+			in_state->USBIN=0;			
+		}		
 		
-		if(temp&0x20)
+		temp=BSP_I2C2_Read(SMB_ADDRESS, 0x1410,I2C_MEMADD_SIZE_16BIT);
+		printf("DC STATUS=0x%x\n\r",temp);			
+		
+		if(temp&0x10)
 		{	
-			printf("USBIN source change !\n\r");
-			return USB_SRC_CHANGE;			
-		}	
-		else if(temp&0x40)
-		{	
-			printf("USBIN change in input current limit !\n\r");	
-			return USB_CURRENT_LIMIT;			
+			printf("DCIN plug in!\n\r");	
+			in_state->DCIN=1;		
 		}
-		else if(temp&0x80)
+		else if((temp&0x10)==0)
 		{	
-			printf("USB cc pin change!\n\r");	
-			return USB_CC_CHANGE;			
+			printf("DCIN plug out!\n\r");	
+			in_state->DCIN=0;				
 		}
+		/*
+		temp=BSP_I2C2_Read(SMB_ADDRESS, 0x1610,I2C_MEMADD_SIZE_16BIT);
+		printf("SMB2CHG MISC STATUS=0x%x\n\r",temp);			
+		
+		if(temp&0x10)
+		{	
+			printf("High duty cycle!\n\r");	
+			in_state->USBIN=0;		
+			temp=BSP_I2C2_Read(SMB_ADDRESS, 0x1310,I2C_MEMADD_SIZE_16BIT);
+			if ((temp&0x10)==0)
+			{	
+				printf("USB plug out!\n\r");	
+				in_state->USBIN=0;			
+			}		
+		}
+		*/
 }
 
+uint8_t BSM_SMB_High_Duty(void)
+{
+	uint8_t temp;	
+	temp=BSP_I2C2_Read(SMB_ADDRESS, 0x1610,I2C_MEMADD_SIZE_16BIT);
+			
+	
+	if(temp&0x10)
+	{	
+		printf("SMB2CHG MISC STATUS=0x%x\n\r",temp);
+		printf("High duty cycle!\n\r");	
+		return 1;
+	}
+	else
+		return 0;
+}
 void BSM_SMB_Charging(USB_TYPE *usb_type)
 {
-	uint8_t apsd_done,temp;
+	//uint8_t apsd_done,temp;
 	//USB_TYPE usb_type;
 		
 						
@@ -456,7 +546,7 @@ void BSP_SMB_TADC(SMB_TADC *smb_tadc)
 {
 	uint8_t temp;
 	uint32_t adc;
-	uint32_t num;
+	//uint32_t num;
 	//enabel TADC
 	BSP_I2C2_Write(SMB_ADDRESS, 0x3646, I2C_MEMADD_SIZE_16BIT, 0x80);	
 	
@@ -528,6 +618,8 @@ void BSP_SMB_TADC(SMB_TADC *smb_tadc)
 
 void BSP_SMB_BAT_Current_Start(void)
 {
+	//enabel TADC
+	BSP_I2C2_Write(SMB_ADDRESS, 0x3646, I2C_MEMADD_SIZE_16BIT, 0x80);	
 	//request TADC
 	BSP_I2C2_Write(SMB_ADDRESS, 0x3651, I2C_MEMADD_SIZE_16BIT, 0x10);		
 }
@@ -545,5 +637,6 @@ uint32_t BSP_SMB_BAT_Current(void)
 	temp=BSP_I2C2_Read(SMB_ADDRESS, 0x3666, I2C_MEMADD_SIZE_16BIT);
 	adc=(adc<<8)+temp;
 	current=adc*196/10;
+	return current;
 }
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
