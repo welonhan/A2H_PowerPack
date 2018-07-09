@@ -67,11 +67,11 @@ typedef struct
 {
 	uint32_t CH1_THERM1_NTC;
 	uint32_t CH2_THERM2_NTC;
-	uint32_t CH3_DIE_TEMP;
-	uint32_t CH4_BAT_CURRENT;
-	uint32_t CH5_BAT_VOL;
-	uint32_t CH6_VIN_CURRENT;	
-	uint32_t CH7_VIN_VOL;
+	int32_t CH3_DIE_TEMP;
+	int32_t CH4_BAT_CURRENT;
+	int32_t CH5_BAT_VOL;
+	int32_t CH6_VIN_CURRENT;	
+	int32_t CH7_VIN_VOL;
 }SMB_TADC;
 
 typedef struct
@@ -94,20 +94,24 @@ void BSP_SMB_USBIN_HC_Mode(void);
 void BSP_SMB_HC_Config(void);
 //SMB_INT BSP_SMB_INT_Type(void);
 void BSP_SMB_TADC(SMB_TADC *smb_tadc);
-void BSM_SMB_Charging(USB_TYPE *usb_type);
-void BSM_SMB_QC3_Single_Inc(void);
-void BSM_SMB_QC3_Single_Dec(void);
-void BSM_SMB_QC2_Force_5V(void);
-void BSM_SMB_QC2_Force_9V(void);
-void BSM_SMB_QC2_Force_12V(void);
+void BSP_SMB_Charging(USB_TYPE *usb_type);
+void BSP_SMB_QC3_Single_Inc(void);
+void BSP_SMB_QC3_Single_Dec(void);
+void BSP_SMB_QC2_Force_5V(void);
+void BSP_SMB_QC2_Force_9V(void);
+void BSP_SMB_QC2_Force_12V(void);
 void BSP_SMB_USBIN_Exit_Suspend(void);
 void BSP_SMB_USBIN_Suspend(void);
-uint32_t BSP_SMB_BAT_Current(void);
+int32_t BSP_SMB_BAT_Current(void);
 void BSP_SMB_BAT_Current_Start(void);
 void BSP_SMB_INT_Type(SMB_IN_STATE *in_state);
 void BSP_SMB_DCIN_Exit_Suspend(void);
 void BSP_SMB_DCIN_Suspend(void);
-uint8_t BSM_SMB_High_Duty(void);
+uint8_t BSP_SMB_High_Duty(void);
+uint8_t BSP_SMB_USB_Detect(void);
+void BSP_SMB_TADC_Start(void);
+void BSP_SMB_DCIN_INT_Enable(void);
+void BSP_SMB_DCIN_INT_Disable(void);	
 
 #ifdef __cplusplus
 }

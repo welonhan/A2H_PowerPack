@@ -61,6 +61,13 @@ char RxCommand[RXCOMMANDSIZE];
 char PbCommand[RXCOMMANDSIZE];
 uint8_t RxBuffer[RXBUFFERSIZE] = {0}; //transmitting byte per byte
 
+
+#define RXBUFFERSIZE_U1   		0x20
+uint8_t RxBuffer_U1[RXBUFFERSIZE_U1] = {0}; //transmitting byte per byte
+
+#define RXBUFFERSIZE_U3   		0x20
+uint8_t RxBuffer_U3[RXBUFFERSIZE_U3] = {0}; //transmitting byte per byte
+
 char 	temp; //initialisation character
 char * s;	
 
@@ -112,6 +119,7 @@ SMB_TADC smb_tadc;
 
 USB_TYPE *usb_type_temp;
 SMB_IN_STATE in_state;
+USB_TYPE usb_type;
 
 typedef enum
 {
@@ -135,7 +143,7 @@ typedef enum
 
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-TaskHandle_t UART2_handle, ADC_handle, CHARGING_handle, SMB_handle,LED_handle;
+TaskHandle_t UART1_handle,UART2_handle,UART3_handle, ADC_handle, CHARGING_handle, SMB_handle,LED_handle;
 	
 /* Private function prototypes -----------------------------------------------*/
 static void UART2_task1(void const *argument);
@@ -143,12 +151,16 @@ static void ADC_task2(void const *argument);
 static void CHG_task3(void const *argument);
 static void SMB_task4(void const *argument)	;
 static void LED_task5(void const *argument)	;
+static void UART1_task6(void const *argument);
+static void UART3_task7(void const *argument);
 
-static xSemaphoreHandle xSemaphore_uart2_int;
-static xSemaphoreHandle xCountingSemaphore,xCountingSemaphore_key;
+static xSemaphoreHandle xSemaphore_uart1_int,xSemaphore_uart2_int,xSemaphore_uart3_int;
+static xSemaphoreHandle xCountingSemaphore_smb, xCountingSemaphore_key;
 static xQueueHandle xQueue_pack_info;
+static xSemaphoreHandle xMutex_i2c;
 
 PACK_STATUS get_pack_status(PACK_INFO *ptr);
+PACK_STATUS pack_status;
 
 static void SYSCLKConfig_STOP(void);
 void DecodeReception(void);
@@ -169,6 +181,9 @@ void pbchgen(uint8_t io);
 void pbboosten(uint8_t en);
 void pbboost9ven(uint8_t en);
 void set_pack_path(uint8_t path);
+void usb_charging(USB_TYPE usb_type);
+void delayms(uint32_t);
+void usb_charging_task(USB_TYPE usb_type);
 /* Private functions ---------------------------------------------------------*/
 
 /**
@@ -210,6 +225,7 @@ int main(void)
 	pack_info.DCIN=0;
 	pack_info.PACK_SOC=BSP_CW_Get_Capacity();
 	pack_info.PHONE_SOC=0;	
+	pack_info.PHONE_USB_VOLTAGE=0;
 	
 	if(HAL_GPIO_ReadPin(PHONE_ATTACHED_PIN_GPIO_PORT,PHONE_ATTACHED_PIN))
 	{
@@ -224,21 +240,20 @@ int main(void)
 	BSP_SMB_INT_Type(&in_state);
 	if(in_state.USBIN==1)
 	{
-		pack_info.USB=1;
-		printf("USB plugin!!\n\r");
-		//BSM_SMB_Charging(usb_type_temp);
+		BSP_SMB_USBIN_Exit_Suspend();
+		pack_info.USB=1;			
 	}
 	else if(in_state.USBIN==0)
 	{
 		pack_info.USB=0;
-		printf("USB plugout!!\n\r");
-	}	
+		BSP_SMB_USBIN_Suspend();
+	}
 	
 	if(in_state.DCIN==1)
 	{
 		pack_info.PHONE_USB=1;
 		printf("DCIN plugin!!\n\r");
-		//BSM_SMB_Charging(usb_type_temp);
+		//BSP_SMB_Charging(usb_type_temp);
 	}
 	else if(in_state.DCIN==0)
 	{
@@ -247,6 +262,12 @@ int main(void)
 	}	
 	
 	set_pack_status(&pack_info);
+	if(pack_info.USB==1)
+	{
+		delayms(3000);
+		BSP_SMB_USBIN_Status(&usb_type);
+		usb_charging(usb_type);
+	}
 	
 	/* Enable Power Clock */
   __HAL_RCC_PWR_CLK_ENABLE();
@@ -255,13 +276,29 @@ int main(void)
   __HAL_RCC_WAKEUPSTOP_CLK_CONFIG(RCC_STOP_WAKEUPCLOCK_MSI);
 	
 	xQueue_pack_info = xQueueCreate( 5, sizeof( PACK_INFO ) );  	
-	xCountingSemaphore = xSemaphoreCreateCounting( 10, 0 );
+	xCountingSemaphore_smb = xSemaphoreCreateCounting( 10, 0 );
+	xCountingSemaphore_key = xSemaphoreCreateCounting( 10, 0 );	
+	xMutex_i2c = xSemaphoreCreateMutex();
+	xSemaphore_uart1_int = xSemaphoreCreateBinary( );
+	if(xSemaphore_uart1_int==NULL)
+			printf("xSemaphore uart1 create fail\n\r");
 	
-  xTaskCreate((TaskFunction_t)UART2_task1,		"task1",3000,NULL,6,	UART2_handle );
+	xSemaphore_uart2_int = xSemaphoreCreateBinary( );
+	if(xSemaphore_uart2_int==NULL)
+			printf("xSemaphore uart2 create fail\n\r");
+	
+	xSemaphore_uart3_int = xSemaphoreCreateBinary( );
+	if(xSemaphore_uart3_int==NULL)
+			printf("xSemaphore uart3 create fail\n\r");
+	
+  xTaskCreate((TaskFunction_t)UART2_task1,		"task1",300,NULL,2,	UART2_handle );
 	xTaskCreate((TaskFunction_t)ADC_task2,			"task2",300,NULL,2,	ADC_handle );
 	xTaskCreate((TaskFunction_t)CHG_task3,			"task3",300,NULL,2,	CHARGING_handle );
-	xTaskCreate((TaskFunction_t)SMB_task4,			"task4",300,NULL,7,	SMB_handle );
+	xTaskCreate((TaskFunction_t)SMB_task4,			"task4",300,NULL,3,	SMB_handle );
 	xTaskCreate((TaskFunction_t)LED_task5,			"task5",300,NULL,2,	LED_handle );
+	xTaskCreate((TaskFunction_t)LED_task5,			"task5",300,NULL,2,	LED_handle );
+	xTaskCreate((TaskFunction_t)UART1_task6,			"task6",300,NULL,2,	UART1_handle );
+	xTaskCreate((TaskFunction_t)UART3_task7,			"task7",300,NULL,2,	UART3_handle );
   /* Start scheduler */
   vTaskStartScheduler();
 
@@ -349,13 +386,24 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
   */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 {
-  /* Set transmission flag: transfer complete */
-	static portBASE_TYPE xHigherPriorityTaskWoken=pdFALSE;
+  static portBASE_TYPE xHigherPriorityTaskWoken=pdFALSE;
+	
 	if(UartHandle->Instance==BSP_UART2)
 	{
-		//UartReady = SET; 
 		if((xSemaphoreGiveFromISR( xSemaphore_uart2_int, &xHigherPriorityTaskWoken))!=pdPASS)
 			printf("UART2 IRQ error\n\r");	
+	}
+	
+	if(UartHandle->Instance==BSP_UART1)
+	{
+		if((xSemaphoreGiveFromISR( xSemaphore_uart1_int, &xHigherPriorityTaskWoken))!=pdPASS)
+			printf("UART1 IRQ error\n\r");	
+	}
+	
+	if(UartHandle->Instance==BSP_UART3)
+	{
+		if((xSemaphoreGiveFromISR( xSemaphore_uart3_int, &xHigherPriorityTaskWoken))!=pdPASS)
+			printf("UART3 IRQ error\n\r");	
 	}
 }
 
@@ -383,7 +431,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   {
     if(HAL_GPIO_ReadPin(SMB_STAT_PIN_GPIO_PORT,SMB_STAT_PIN)==0)
 		{
-			if((xSemaphoreGiveFromISR( xCountingSemaphore, &xHigherPriorityTaskWoken_smb))!=pdPASS)
+			if((xSemaphoreGiveFromISR( xCountingSemaphore_smb, &xHigherPriorityTaskWoken_smb))!=pdPASS)
 				printf("UART IRQ error\n\r");	
 		}
   }
@@ -409,7 +457,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   else if (GPIO_Pin == PHONE_ATTACHED_PIN)
   {
     /* Toggle LED2 */
-    BSP_LED_Toggle(LED2);
+    //BSP_LED_Toggle(LED2);
 		//printf("phone attach pin int!!\n\r");
 		if(HAL_GPIO_ReadPin(PHONE_ATTACHED_PIN_GPIO_PORT,PHONE_ATTACHED_PIN))
 		{
@@ -437,7 +485,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 }
 
 /**
-  * @brief  UART3 thread 1
+  * @brief  UART2 thread 1
   * @param  thread not used
   * @retval None
   */
@@ -445,11 +493,7 @@ static void UART2_task1(void const *argument)
 {
 	(void) argument;
   uint8_t i;
-	//portBASE_TYPE xStatus;
-	//uint16_t xTicksToWait=100 / portTICK_RATE_MS;
-	xSemaphore_uart2_int = xSemaphoreCreateBinary( );
-	if(xSemaphore_uart2_int==NULL)
-			printf("xSemaphore create fail\n\r");
+	
 	for(;;)
 	{			
 			SET_BIT(Uart2Handle.Instance->CR2, USART_CR2_RTOEN);	//receiver timeout enable
@@ -496,7 +540,9 @@ static void ADC_task2(void const *argument)
 	uint32_t vrefint_data,vrefint_cal;
 	vrefint_cal=(uint32_t)(*VREFINT_CAL_ADDR);	
 	portBASE_TYPE xStatus;
-	
+	uint16_t xTicksToWait=100 / portTICK_RATE_MS;	
+	uint8_t temp;
+	static portBASE_TYPE xHigherPriorityTaskWoken=pdFALSE;
 	for(;;)
 	{
 	
@@ -506,22 +552,27 @@ static void ADC_task2(void const *argument)
 		usb_in_voltage=(vdda*aADCxConvertedData[0]*11)/4096;
 		ext_pwr_voltage=(vdda*aADCxConvertedData[1]*11)/4096;
 		acc_id_voltage=(vdda*aADCxConvertedData[2])/4096;
-			
+		
+		//printf("USB IN VOLTAGE:%dmV\n\r",usb_in_voltage);
+		//printf("EXT PWR VOLTAGE:%dmV\n\r",ext_pwr_voltage);
+		
+		xSemaphoreTake( xMutex_i2c, portMAX_DELAY );
+		///////////////////////////////////////////////
+		//take the priority of I2C access
+		BSP_SMB_TADC_Start();
+		vTaskDelay(5);
 		BSP_SMB_TADC(&smb_tadc);
 		pack_info.PACK_SOC=BSP_CW_Get_Capacity();
-		uint16_t xTicksToWait=100 / portTICK_RATE_MS;	
-	
-		if(BSM_SMB_High_Duty())
-		{
-			pack_info.USB=0;
-			xStatus=xQueueSendToBack( xQueue_pack_info, &pack_info, xTicksToWait );
-			if( xStatus != pdPASS )
-			{
-				printf("Send to queue error!\n\r");	
-			}			
-		}
-		vTaskDelay(500);
+		temp=BSP_SMB_USB_Detect();
+		///////////////////////////////////////////////
+		xSemaphoreGive( xMutex_i2c);
 		
+		if(temp!=(uint8_t)pack_info.USB)
+		{
+			printf("USB state changed!\n\r");
+			xSemaphoreGive( xCountingSemaphore_smb);			
+		}
+		vTaskDelay(500);		
 	}
 }
 
@@ -541,88 +592,50 @@ static void CHG_task3(void const *argument)
 }
 
 static void SMB_task4(void const *argument)
-{
-	USB_TYPE usb_type;
+{	
 	portBASE_TYPE xStatus;
-	uint16_t xTicksToWait=100 / portTICK_RATE_MS;	
+	uint16_t xTicksToWait=100 / portTICK_RATE_MS;		
 	
-	uint8_t pulse,i;
-	uint32_t max_current,current;
-	
-	xCountingSemaphore = xSemaphoreCreateCounting( 10, 0 );
-	if(xCountingSemaphore==NULL)
-			printf("xCountingSemaphore create fail\n\r");
+	//xCountingSemaphore = xSemaphoreCreateCounting( 10, 0 );
+	//if(xCountingSemaphore==NULL)
+	//		printf("xCountingSemaphore create fail\n\r");
 	for(;;)
 	{
-		xSemaphoreTake( xCountingSemaphore, portMAX_DELAY );
-		BSP_SMB_INT_Type(&in_state);		
+		xSemaphoreTake( xCountingSemaphore_smb, portMAX_DELAY );
 		
+		xSemaphoreTake( xMutex_i2c, portMAX_DELAY );
+		BSP_SMB_INT_Type(&in_state);			
+		//USB charging
 		if(in_state.USBIN==1)
 		{
 			BSP_SMB_USBIN_Exit_Suspend();
-			pack_info.USB=1;				
-			vTaskDelay(3000);
-			
-			BSP_SMB_USBIN_Status(&usb_type);
-			//BSM_SMB_Charging(&usb_type);
-			if(usb_type.CHARGER==QC3_CHARGER)
+			pack_info.USB=1;	
+			xStatus=xQueueSendToBack( xQueue_pack_info, &pack_info, xTicksToWait );
+			if( xStatus != pdPASS )
 			{
-				i=0;
-				max_current=0;
-				BSM_SMB_QC2_Force_5V();
-				while(i<20)
-				{
-					BSP_SMB_BAT_Current_Start();
-					vTaskDelay(80);
-					current=BSP_SMB_BAT_Current();
-					if(current>max_current)
-					{
-						max_current=current;
-						pulse=0x3f&BSP_I2C2_Read(SMB_ADDRESS, 0x130A,I2C_MEMADD_SIZE_16BIT);
-					}
-					BSM_SMB_QC3_Single_Inc();
-					i++;
-				}
-				if(pulse!=0)
-				{
-					i=20-pulse;
-					printf("QC3 pulse=%d\n\r",pulse);
-					while(i>0)
-					{
-						BSM_SMB_QC3_Single_Dec();
-						i--;
-					}			
-				}
-			}
-			else if(usb_type.CHARGER==QC2_CHARGER)
-			{
-				BSM_SMB_QC2_Force_5V();
-				BSM_SMB_QC2_Force_9V();
-				printf("QC2 charger set to 9V");
+				printf("Send to queue error!\n\r");	
 			}			
-			
+			vTaskDelay(3000);
+			BSP_SMB_USBIN_Status(&usb_type);
+			usb_charging_task(usb_type);
 		}
 		else if(in_state.USBIN==0)
 		{
-			pack_info.USB=0;			
+			pack_info.USB=0;
 			BSP_SMB_USBIN_Suspend();
 		}
-		
-		if(in_state.DCIN==1)
-		{			
-			pack_info.PHONE_USB=1;			
-			BSP_SMB_DCIN_Exit_Suspend();			
-		}
-		else if(in_state.DCIN==0)
+		//DC_IN charging
+		if(in_state.DCIN==0)
 		{
 			pack_info.PHONE_USB=0;			
 			BSP_SMB_DCIN_Suspend();
-		}		
+		}	
+		xSemaphoreGive( xMutex_i2c);
 		xStatus=xQueueSendToBack( xQueue_pack_info, &pack_info, xTicksToWait );
 		if( xStatus != pdPASS )
 		{
 			printf("Send to queue error!\n\r");	
-		}			
+		}						
 	}			
 }
 
@@ -630,9 +643,9 @@ static void LED_task5(void const *argument)
 {
 	portBASE_TYPE xStatus;
 	uint16_t xTicksToWait=100 / portTICK_RATE_MS;	
-	xCountingSemaphore_key = xSemaphoreCreateCounting( 10, 0 );
-	if(xCountingSemaphore==NULL)
-			printf("xCountingSemaphore create fail\n\r");
+	//xCountingSemaphore_key = xSemaphoreCreateCounting( 10, 0 );
+	//if(xCountingSemaphore_key==NULL)
+	//		printf("xCountingSemaphore key create fail\n\r");
 	for(;;)
 	{
 		xSemaphoreTake( xCountingSemaphore_key, portMAX_DELAY );	
@@ -644,6 +657,160 @@ static void LED_task5(void const *argument)
 		led_of_soc(pack_info.PACK_SOC);
 		
 	}			
+}
+
+static void UART1_task6(void const *argument)
+{
+	(void) argument;
+  uint8_t i;
+	
+	for(;;)
+	{			
+		SET_BIT(Uart1Handle.Instance->CR2, USART_CR2_RTOEN);	//receiver timeout enable
+		SET_BIT(Uart1Handle.Instance->CR1, USART_CR1_RTOIE);	//receiver timeout interrupt enable
+		Uart1Handle.Instance->RTOR=0x00000016;								//22x bit duration
+		
+		for(i=0;i<RXBUFFERSIZE_U1;i++)
+			*(RxBuffer_U1+i)=0;
+				
+		if(HAL_UART_Receive_IT(&Uart1Handle, RxBuffer_U1, RXBUFFERSIZE_U1) != HAL_OK)
+			 printf("uart1 int error\n\r");
+		xSemaphoreTake( xSemaphore_uart1_int, portMAX_DELAY );
+
+		HAL_UART_Transmit(&Uart1Handle,RxBuffer_U1,5,10);
+		
+	}			
+			
+}
+
+static void UART3_task7(void const *argument)
+{
+	(void) argument;
+  uint8_t i;
+	
+	for(;;)
+	{			
+		SET_BIT(Uart3Handle.Instance->CR2, USART_CR2_RTOEN);	//receiver timeout enable
+		SET_BIT(Uart3Handle.Instance->CR1, USART_CR1_RTOIE);	//receiver timeout interrupt enable
+		Uart3Handle.Instance->RTOR=0x00000016;								//22x bit duration
+		
+		for(i=0;i<RXBUFFERSIZE_U3;i++)
+			*(RxBuffer_U3+i)=0;
+		if(HAL_UART_Receive_IT(&Uart3Handle, RxBuffer_U3, RXBUFFERSIZE_U3) != HAL_OK)
+			 printf("uart3 int error\n\r");
+		xSemaphoreTake( xSemaphore_uart3_int, portMAX_DELAY );
+
+		HAL_UART_Transmit(&Uart3Handle,RxBuffer_U3,5,10);
+		
+	}			
+			
+}
+
+void usb_charging(USB_TYPE usb_type)
+{	
+	uint8_t pulse,i;
+	int32_t max_current,current;
+	if(usb_type.CHARGER==QC3_CHARGER)
+	{
+		if(pack_status==STATUS_USB2PACK)
+		{
+			i=0;
+			max_current=0;
+			BSP_SMB_QC2_Force_5V();
+			while(i<20)
+			{
+				BSP_SMB_BAT_Current_Start();
+				delayms(400);
+				
+				current=BSP_SMB_BAT_Current();
+				printf("BAT current:%dmA\n\r",current);
+				if(current>max_current)
+				{
+					max_current=current;
+					pulse=0x3f&BSP_I2C2_Read(SMB_ADDRESS, 0x130A,I2C_MEMADD_SIZE_16BIT);
+				}
+				BSP_SMB_QC3_Single_Inc();
+				i++;
+			}
+			if(pulse!=0)
+			{
+				i=20-pulse;
+				printf("QC3 pulse=%d\n\r",pulse);
+				while(i>0)
+				{
+					BSP_SMB_QC3_Single_Dec();
+					i--;
+				}			
+			}
+		}
+		else if(pack_status==STATUS_USB2PHONE)
+		{
+			//BSP_SMB_QC2_Force_5V();
+			//delayms(400);
+			BSP_SMB_QC2_Force_9V();
+			printf("USB to Phone set to 9V\n\r");
+		}		
+	}
+	else if(usb_type.CHARGER==QC2_CHARGER)
+	{
+		BSP_SMB_QC2_Force_5V();
+		delayms(100);
+		BSP_SMB_QC2_Force_9V();
+		printf("QC2 charger set to 9V\n\r");
+	}				
+}
+
+void usb_charging_task(USB_TYPE usb_type)
+{	
+	uint8_t pulse,i;
+	int32_t max_current,current;
+	if(usb_type.CHARGER==QC3_CHARGER)
+	{
+		if(pack_status==STATUS_USB2PACK)
+		{
+			i=0;
+			max_current=0;
+			BSP_SMB_QC2_Force_5V();
+			while(i<20)
+			{
+				BSP_SMB_BAT_Current_Start();
+				vTaskDelay(400);			
+				current=BSP_SMB_BAT_Current();
+				printf("BAT current:%dmA\n\r",current);
+				if(current>max_current)
+				{
+					max_current=current;
+					pulse=0x3f&BSP_I2C2_Read(SMB_ADDRESS, 0x130A,I2C_MEMADD_SIZE_16BIT);
+				}
+				BSP_SMB_QC3_Single_Inc();
+				i++;
+			}
+			if(pulse!=0)
+			{
+				i=20-pulse;
+				printf("QC3 pulse=%d\n\r",pulse);
+				while(i>0)
+				{
+					BSP_SMB_QC3_Single_Dec();
+					i--;
+				}			
+			}
+		}
+		else if(pack_status==STATUS_USB2PHONE)
+		{
+			BSP_SMB_QC2_Force_5V();
+			vTaskDelay(100);	
+			BSP_SMB_QC2_Force_9V();
+			printf("USB to Phone set to 9V\n\r");
+		}			
+	}
+	else if(usb_type.CHARGER==QC2_CHARGER)
+	{
+		BSP_SMB_QC2_Force_5V();
+		vTaskDelay(10);	
+		BSP_SMB_QC2_Force_9V();
+		printf("QC2 charger set to 9V\n\r");
+	}				
 }
 
 void led_of_soc(uint8_t soc)
@@ -891,13 +1058,15 @@ void pbfw(void)
 
 void pbadc(void)
 {
+	printf("******SMB TADC******\n\r");
 	printf("CH1 THERM1 NTC:%dC\n\r",smb_tadc.CH1_THERM1_NTC);
-	printf("CH2 THERM2 NTC:%dC\n\r",smb_tadc.CH2_THERM2_NTC);
+	//printf("CH2 THERM2 NTC:%dC\n\r",smb_tadc.CH2_THERM2_NTC);
 	printf("CH3 DIE TEMP:%dC\n\r",smb_tadc.CH3_DIE_TEMP);
 	printf("CH4 BAT CURRENT:%dmA\n\r",smb_tadc.CH4_BAT_CURRENT);
 	printf("CH5 BAT VOLTAGE:%dmV\n\r",smb_tadc.CH5_BAT_VOL);
 	printf("CH6 VIN CURRENT:%dmA\n\r",smb_tadc.CH6_VIN_CURRENT);
 	printf("CH7 VIN VOLTAGE:%dmV\n\r",smb_tadc.CH7_VIN_VOL);
+	printf("********************\n\r");
 	printf("USB IN VOLTAGE:%dmV\n\r",usb_in_voltage);
 	printf("EXT PWR VOLTAGE:%dmV\n\r",ext_pwr_voltage);
 	printf("ACC ID VOLTAGE:%dmV\n\r",acc_id_voltage);
@@ -994,15 +1163,14 @@ PUTCHAR_PROTOTYPE
 }
 
 PACK_STATUS get_pack_status(PACK_INFO *ptr)
-{
-	
+{	
 	if((ptr->ATTACH==0)&&	(ptr->USB==0))
 		status_pack=STATUS_STANDBY;
 	else if((ptr->ATTACH==1)&&	(ptr->USB==0)&&(ptr->PHONE_USB==0)&&(ptr->PACK_SOC<=3))		
 		status_pack=STATUS_STANDBY;
 	else if((ptr->ATTACH==0)&&	(ptr->USB==1))
 		status_pack=STATUS_USB2PACK;
-	else if((ptr->ATTACH==1)&&	(ptr->USB==1)&&(ptr->PHONE_USB==1))		
+	else if((ptr->ATTACH==1)&&	(ptr->USB==1)&&(ptr->PHONE_USB==1)&&(ptr->PHONE_USB_VOLTAGE==0))		
 		status_pack=STATUS_USB2PACK;
 	else if((ptr->ATTACH==1)&&	(ptr->USB==1)&&(ptr->PHONE_USB==0)&&(ptr->PHONE_SOC>=90))
 		status_pack=STATUS_USB2BOTH;
@@ -1010,7 +1178,7 @@ PACK_STATUS get_pack_status(PACK_INFO *ptr)
 		status_pack=STATUS_USB2PHONE;
 	else if((ptr->ATTACH==1)&&	(ptr->USB==0)&&(ptr->PHONE_USB==0)&&(ptr->PACK_SOC>3))
 		status_pack=STATUS_BOOST2PHONE;
-	else if((ptr->ATTACH==1)&&	(ptr->USB==0)&&(ptr->PHONE_USB==1))
+	else if((ptr->ATTACH==1)&&	(ptr->USB==0)&&(ptr->PHONE_USB==1)&&(ptr->PHONE_USB_VOLTAGE>=5000))
 		status_pack=STATUS_PHONE2PACK;
 	return status_pack;
 }
@@ -1065,11 +1233,11 @@ void set_pack_path(uint8_t path)
 
 void set_pack_status(PACK_INFO *rptr)
 {
-	PACK_STATUS status;
+	
 	printf("Attach\tUSB\tPHONE_USB\tUSB_VOL\tPHONE_SOC\tPACK_SOC\n\r");
 	printf("%d\t%d\t%d\t%d\t%d\t%d\n\r",rptr->ATTACH,rptr->USB,rptr->PHONE_USB,rptr->PHONE_USB_VOLTAGE,rptr->PHONE_SOC,rptr->PACK_SOC);
-	status=get_pack_status(rptr);		
-	switch(status){
+	pack_status=get_pack_status(rptr);		
+	switch(pack_status){
 			case STATUS_STANDBY:
 			{
 				BSP_STANDBY();
@@ -1179,6 +1347,17 @@ static void SYSCLKConfig_STOP(void)
   {
     while(1);
   }
+}
+
+void delayms(uint32_t i)
+{
+	uint32_t j=20000;
+	for(;i!=0;i--)
+	{
+		for(;j!=0;j--)
+			;
+		j=20000;
+	}
 }
 
 #ifdef  USE_FULL_ASSERT

@@ -126,111 +126,111 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 
   if(huart->Instance==BSP_UART3)
   {
-	/*##-1- Set source clock to SYSCLK for I2C1 ################################################*/
-  RCC_PeriphCLKInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART3;
-  RCC_PeriphCLKInitStruct.Usart3ClockSelection = RCC_USART3CLKSOURCE_SYSCLK;
-  HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphCLKInitStruct);
-		
-  /*##-1- Enable peripherals and GPIO Clocks #################################*/
-  /* Enable GPIO TX/RX clock */
-  BSP_UART3_TX_GPIO_CLK_ENABLE();
-  BSP_UART3_RX_GPIO_CLK_ENABLE();
+		/*##-1- Set source clock to SYSCLK for I2C1 ################################################*/
+		RCC_PeriphCLKInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART3;
+		RCC_PeriphCLKInitStruct.Usart3ClockSelection = RCC_USART3CLKSOURCE_SYSCLK;
+		HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphCLKInitStruct);
+			
+		/*##-1- Enable peripherals and GPIO Clocks #################################*/
+		/* Enable GPIO TX/RX clock */
+		BSP_UART3_TX_GPIO_CLK_ENABLE();
+		BSP_UART3_RX_GPIO_CLK_ENABLE();
 
-  /* Enable BSP_UART3 clock */
-  BSP_UART3_CLK_ENABLE();
+		/* Enable BSP_UART3 clock */
+		BSP_UART3_CLK_ENABLE();
 
-  /*##-2- Configure peripheral GPIO ##########################################*/
-  /* UART TX GPIO pin configuration  */
-  GPIO_InitStruct.Pin       = BSP_UART3_TX_PIN;
-  GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull      = GPIO_PULLUP;
-  GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
-  GPIO_InitStruct.Alternate = BSP_UART3_TX_AF;
+		/*##-2- Configure peripheral GPIO ##########################################*/
+		/* UART TX GPIO pin configuration  */
+		GPIO_InitStruct.Pin       = BSP_UART3_TX_PIN;
+		GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
+		GPIO_InitStruct.Pull      = GPIO_PULLUP;
+		GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
+		GPIO_InitStruct.Alternate = BSP_UART3_TX_AF;
 
-  HAL_GPIO_Init(BSP_UART3_TX_GPIO_PORT, &GPIO_InitStruct);
+		HAL_GPIO_Init(BSP_UART3_TX_GPIO_PORT, &GPIO_InitStruct);
 
-  /* UART RX GPIO pin configuration  */
-  GPIO_InitStruct.Pin = BSP_UART3_RX_PIN;
-  GPIO_InitStruct.Alternate = BSP_UART3_RX_AF;
+		/* UART RX GPIO pin configuration  */
+		GPIO_InitStruct.Pin = BSP_UART3_RX_PIN;
+		GPIO_InitStruct.Alternate = BSP_UART3_RX_AF;
 
-  HAL_GPIO_Init(BSP_UART3_RX_GPIO_PORT, &GPIO_InitStruct);
+		HAL_GPIO_Init(BSP_UART3_RX_GPIO_PORT, &GPIO_InitStruct);
 
-  /*##-3- Configure the NVIC for UART ########################################*/
-  /* NVIC for USART */
-  HAL_NVIC_SetPriority(BSP_UART3_IRQn, 13, 0);
-  HAL_NVIC_EnableIRQ(BSP_UART3_IRQn);
+		/*##-3- Configure the NVIC for UART ########################################*/
+		/* NVIC for USART */
+		HAL_NVIC_SetPriority(BSP_UART3_IRQn, 13, 0);
+		HAL_NVIC_EnableIRQ(BSP_UART3_IRQn);
   }
 	else if(huart->Instance==BSP_UART2)
   {
-	/*##-1- Set source clock to SYSCLK for I2C1 ################################################*/
-  RCC_PeriphCLKInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART2;
-  RCC_PeriphCLKInitStruct.Usart2ClockSelection = RCC_USART2CLKSOURCE_SYSCLK;
-  HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphCLKInitStruct);
-		
-  /*##-1- Enable peripherals and GPIO Clocks #################################*/
-  /* Enable GPIO TX/RX clock */
-  BSP_UART2_TX_GPIO_CLK_ENABLE();
-  BSP_UART2_RX_GPIO_CLK_ENABLE();
+		/*##-1- Set source clock to SYSCLK for I2C1 ################################################*/
+		RCC_PeriphCLKInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART2;
+		RCC_PeriphCLKInitStruct.Usart2ClockSelection = RCC_USART2CLKSOURCE_SYSCLK;
+		HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphCLKInitStruct);
+			
+		/*##-1- Enable peripherals and GPIO Clocks #################################*/
+		/* Enable GPIO TX/RX clock */
+		BSP_UART2_TX_GPIO_CLK_ENABLE();
+		BSP_UART2_RX_GPIO_CLK_ENABLE();
 
-  /* Enable BSP_UART3 clock */
-  BSP_UART2_CLK_ENABLE();
+		/* Enable BSP_UART3 clock */
+		BSP_UART2_CLK_ENABLE();
 
-  /*##-2- Configure peripheral GPIO ##########################################*/
-  /* UART TX GPIO pin configuration  */
-  GPIO_InitStruct.Pin       = BSP_UART2_TX_PIN;
-  GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull      = GPIO_PULLUP;
-  GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
-  GPIO_InitStruct.Alternate = BSP_UART2_TX_AF;
+		/*##-2- Configure peripheral GPIO ##########################################*/
+		/* UART TX GPIO pin configuration  */
+		GPIO_InitStruct.Pin       = BSP_UART2_TX_PIN;
+		GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
+		GPIO_InitStruct.Pull      = GPIO_PULLUP;
+		GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
+		GPIO_InitStruct.Alternate = BSP_UART2_TX_AF;
 
-  HAL_GPIO_Init(BSP_UART2_TX_GPIO_PORT, &GPIO_InitStruct);
+		HAL_GPIO_Init(BSP_UART2_TX_GPIO_PORT, &GPIO_InitStruct);
 
-  /* UART RX GPIO pin configuration  */
-  GPIO_InitStruct.Pin = BSP_UART2_RX_PIN;
-  GPIO_InitStruct.Alternate = BSP_UART2_RX_AF;
+		/* UART RX GPIO pin configuration  */
+		GPIO_InitStruct.Pin = BSP_UART2_RX_PIN;
+		GPIO_InitStruct.Alternate = BSP_UART2_RX_AF;
 
-  HAL_GPIO_Init(BSP_UART2_RX_GPIO_PORT, &GPIO_InitStruct);
+		HAL_GPIO_Init(BSP_UART2_RX_GPIO_PORT, &GPIO_InitStruct);
 
-  /*##-3- Configure the NVIC for UART ########################################*/
-  /* NVIC for USART */
-  HAL_NVIC_SetPriority(BSP_UART2_IRQn, 13, 0);
-  HAL_NVIC_EnableIRQ(BSP_UART2_IRQn);
+		/*##-3- Configure the NVIC for UART ########################################*/
+		/* NVIC for USART */
+		HAL_NVIC_SetPriority(BSP_UART2_IRQn, 13, 0);
+		HAL_NVIC_EnableIRQ(BSP_UART2_IRQn);
   }
 	else if(huart->Instance==BSP_UART1)
   {
-	/*##-1- Set source clock to SYSCLK for I2C1 ################################################*/
-  RCC_PeriphCLKInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART1;
-  RCC_PeriphCLKInitStruct.Usart1ClockSelection = RCC_USART1CLKSOURCE_SYSCLK;
-  HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphCLKInitStruct);
-		
-  /*##-1- Enable peripherals and GPIO Clocks #################################*/
-  /* Enable GPIO TX/RX clock */
-  BSP_UART1_TX_GPIO_CLK_ENABLE();
-  BSP_UART1_RX_GPIO_CLK_ENABLE();
+		/*##-1- Set source clock to SYSCLK for I2C1 ################################################*/
+		RCC_PeriphCLKInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART1;
+		RCC_PeriphCLKInitStruct.Usart1ClockSelection = RCC_USART1CLKSOURCE_SYSCLK;
+		HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphCLKInitStruct);
+			
+		/*##-1- Enable peripherals and GPIO Clocks #################################*/
+		/* Enable GPIO TX/RX clock */
+		BSP_UART1_TX_GPIO_CLK_ENABLE();
+		BSP_UART1_RX_GPIO_CLK_ENABLE();
 
-  /* Enable BSP_UART3 clock */
-  BSP_UART1_CLK_ENABLE();
+		/* Enable BSP_UART1 clock */
+		BSP_UART1_CLK_ENABLE();
 
-  /*##-2- Configure peripheral GPIO ##########################################*/
-  /* UART TX GPIO pin configuration  */
-  GPIO_InitStruct.Pin       = BSP_UART1_TX_PIN;
-  GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull      = GPIO_PULLUP;
-  GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
-  GPIO_InitStruct.Alternate = BSP_UART1_TX_AF;
+		/*##-2- Configure peripheral GPIO ##########################################*/
+		/* UART TX GPIO pin configuration  */
+		GPIO_InitStruct.Pin       = BSP_UART1_TX_PIN;
+		GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
+		GPIO_InitStruct.Pull      = GPIO_PULLUP;
+		GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
+		GPIO_InitStruct.Alternate = BSP_UART1_TX_AF;
 
-  HAL_GPIO_Init(BSP_UART1_TX_GPIO_PORT, &GPIO_InitStruct);
+		HAL_GPIO_Init(BSP_UART1_TX_GPIO_PORT, &GPIO_InitStruct);
 
-  /* UART RX GPIO pin configuration  */
-  GPIO_InitStruct.Pin = BSP_UART1_RX_PIN;
-  GPIO_InitStruct.Alternate = BSP_UART1_RX_AF;
+		/* UART RX GPIO pin configuration  */		
+		GPIO_InitStruct.Pin = BSP_UART1_RX_PIN;
+		GPIO_InitStruct.Alternate = BSP_UART1_RX_AF;
 
-  HAL_GPIO_Init(BSP_UART1_RX_GPIO_PORT, &GPIO_InitStruct);
+		HAL_GPIO_Init(BSP_UART1_RX_GPIO_PORT, &GPIO_InitStruct);
 
-  /*##-3- Configure the NVIC for UART ########################################*/
-  /* NVIC for USART */
-  HAL_NVIC_SetPriority(BSP_UART1_IRQn, 13, 0);
-  HAL_NVIC_EnableIRQ(BSP_UART1_IRQn);
+		/*##-3- Configure the NVIC for UART ########################################*/
+		/* NVIC for USART */
+		HAL_NVIC_SetPriority(BSP_UART1_IRQn, 13, 0);
+		HAL_NVIC_EnableIRQ(BSP_UART1_IRQn);
   }
 }
 

@@ -88,8 +88,8 @@ void BSP_SMB_Init(void)
 		printf("SBM1381 INT enable setting error!\n\r");
 	
 	//enable int
-	if((BSP_I2C2_Write(SMB_ADDRESS, 0x1415, I2C_MEMADD_SIZE_16BIT, 0x10))!=HAL_OK)
-		printf("SBM1381 INT enable setting error!\n\r");	
+	//if((BSP_I2C2_Write(SMB_ADDRESS, 0x1415, I2C_MEMADD_SIZE_16BIT, 0x10))!=HAL_OK)
+	//	printf("SBM1381 INT enable setting error!\n\r");	
 	
 	//clear pending int
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1414, I2C_MEMADD_SIZE_16BIT, 0xff);
@@ -118,7 +118,7 @@ void BSP_SMB_Init(void)
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1092, I2C_MEMADD_SIZE_16BIT, 0x32);		//JEITA FCC MINUS 2000mA
 		
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1370, I2C_MEMADD_SIZE_16BIT, 0x6C);		//USB IN INPUT CURRENT LIMIT TO 2.7A
-	BSP_I2C2_Write(SMB_ADDRESS, 0x1380, I2C_MEMADD_SIZE_16BIT, 0x84);		//EN AICL
+	BSP_I2C2_Write(SMB_ADDRESS, 0x1380, I2C_MEMADD_SIZE_16BIT, 0x14);		//EN AICL
 		
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1358, I2C_MEMADD_SIZE_16BIT, 0x00);		//Type -c cc
 	
@@ -389,7 +389,7 @@ void BSP_SMB_INT_Type(SMB_IN_STATE *in_state)
 		*/
 }
 
-uint8_t BSM_SMB_High_Duty(void)
+uint8_t BSP_SMB_High_Duty(void)
 {
 	uint8_t temp;	
 	temp=BSP_I2C2_Read(SMB_ADDRESS, 0x1610,I2C_MEMADD_SIZE_16BIT);
@@ -404,7 +404,23 @@ uint8_t BSM_SMB_High_Duty(void)
 	else
 		return 0;
 }
-void BSM_SMB_Charging(USB_TYPE *usb_type)
+
+uint8_t BSP_SMB_USB_Detect(void)
+{
+	uint8_t temp,i;	
+	temp=BSP_I2C2_Read(SMB_ADDRESS, 0x1310,I2C_MEMADD_SIZE_16BIT);
+			
+	
+	if(temp&0x10)
+	{	
+		i=1;
+	}
+	else
+		i= 0;
+	return i;
+}
+
+void BSP_SMB_Charging(USB_TYPE *usb_type)
 {
 	//uint8_t apsd_done,temp;
 	//USB_TYPE usb_type;
@@ -475,27 +491,27 @@ void BSM_SMB_Charging(USB_TYPE *usb_type)
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1340, I2C_MEMADD_SIZE_16BIT, 0x0);
 }
 
-void BSM_SMB_QC3_Single_Inc(void)
+void BSP_SMB_QC3_Single_Inc(void)
 {
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1343, I2C_MEMADD_SIZE_16BIT, 0x01);	
 }
 
-void BSM_SMB_QC3_Single_Dec(void)
+void BSP_SMB_QC3_Single_Dec(void)
 {
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1343, I2C_MEMADD_SIZE_16BIT, 0x02);	
 }
 
-void BSM_SMB_QC2_Force_5V(void)
+void BSP_SMB_QC2_Force_5V(void)
 {
-	BSP_I2C2_Write(SMB_ADDRESS, 0x1343, I2C_MEMADD_SIZE_16BIT, 0x04);	
+	BSP_I2C2_Write(SMB_ADDRESS, 0x1343, I2C_MEMADD_SIZE_16BIT, 0x08);	
 }
 
-void BSM_SMB_QC2_Force_9V(void)
+void BSP_SMB_QC2_Force_9V(void)
 {
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1343, I2C_MEMADD_SIZE_16BIT, 0x10);	
 }
 
-void BSM_SMB_QC2_Force_12V(void)
+void BSP_SMB_QC2_Force_12V(void)
 {
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1343, I2C_MEMADD_SIZE_16BIT, 0x20);	
 }
@@ -541,23 +557,19 @@ uint8_t BSP_SMB_Get_ID(uint8_t *smb_revid)
 		return 1;
 }
 
+void BSP_SMB_TADC_Start(void)
+{
+	//enabel TADC
+	BSP_I2C2_Write(SMB_ADDRESS, 0x3646, I2C_MEMADD_SIZE_16BIT, 0x80);	
+	//request TADC
+	BSP_I2C2_Write(SMB_ADDRESS, 0x3651, I2C_MEMADD_SIZE_16BIT, 0xFF);		
+}
 
 void BSP_SMB_TADC(SMB_TADC *smb_tadc)
 {
 	uint8_t temp;
-	uint32_t adc;
-	//uint32_t num;
-	//enabel TADC
-	BSP_I2C2_Write(SMB_ADDRESS, 0x3646, I2C_MEMADD_SIZE_16BIT, 0x80);	
-	
-	//request TADC
-	BSP_I2C2_Write(SMB_ADDRESS, 0x3651, I2C_MEMADD_SIZE_16BIT, 0x7f);	
-	
-	do
-	{
-		temp=BSP_I2C2_Read(SMB_ADDRESS, 0x3606, I2C_MEMADD_SIZE_16BIT);
-	}
-	while(temp!=0x7f);
+	uint32_t adc;	
+	int32_t num;
 	
 	//CH1 THERMESTOR1 NTC
 	adc=0;
@@ -568,12 +580,14 @@ void BSP_SMB_TADC(SMB_TADC *smb_tadc)
 	smb_tadc->CH1_THERM1_NTC=adc*171/1000;
 	
 	//CH2 THERMESTOR2 NTC
+	/*
 	adc=0;
 	temp=BSP_I2C2_Read(SMB_ADDRESS, 0x3663, I2C_MEMADD_SIZE_16BIT);
 	adc=temp;
 	temp=BSP_I2C2_Read(SMB_ADDRESS, 0x3662, I2C_MEMADD_SIZE_16BIT);
 	adc=(adc<<8)+temp;
 	smb_tadc->CH2_THERM2_NTC=adc*6278/10000;
+	*/
 	
 	//CH3 die temperature
 	adc=0;
@@ -581,7 +595,14 @@ void BSP_SMB_TADC(SMB_TADC *smb_tadc)
 	adc=temp;
 	temp=BSP_I2C2_Read(SMB_ADDRESS, 0x3664, I2C_MEMADD_SIZE_16BIT);
 	adc=(adc<<8)+temp;
-	smb_tadc->CH3_DIE_TEMP=adc*122/100;
+	if(adc>0x3ff)
+	{	
+		adc=(~(adc-1))&(0x03ff);		
+		num=(int32_t)(-1*adc);
+	}
+	else 
+		num=(int32_t)adc; 
+	smb_tadc->CH3_DIE_TEMP=27+num*(-122)/100;
 	
 	//CH4 BAT current
 	adc=0;
@@ -589,7 +610,14 @@ void BSP_SMB_TADC(SMB_TADC *smb_tadc)
 	adc=temp;
 	temp=BSP_I2C2_Read(SMB_ADDRESS, 0x3666, I2C_MEMADD_SIZE_16BIT);
 	adc=(adc<<8)+temp;
-	smb_tadc->CH4_BAT_CURRENT=adc*196/10;
+	if(adc>0x3ff)
+	{	
+		adc=(~(adc-1))&(0x03ff);		
+		num=(int32_t)(-1*adc);
+	}
+	else 
+		num=(int32_t)adc; 
+	smb_tadc->CH4_BAT_CURRENT=num*196/10;
 	
 	//CH5 BAT voltage
 	adc=0;
@@ -597,7 +625,14 @@ void BSP_SMB_TADC(SMB_TADC *smb_tadc)
 	adc=temp;
 	temp=BSP_I2C2_Read(SMB_ADDRESS, 0x3668, I2C_MEMADD_SIZE_16BIT);
 	adc=(adc<<8)+temp;
-	smb_tadc->CH5_BAT_VOL=adc*489/100;
+	if(adc>0x3ff)
+	{	
+		adc=(~(adc-1))&(0x03ff);		
+		num=(int32_t)(-1*adc);		
+	}
+	else 
+		num=(int32_t)adc; 
+	smb_tadc->CH5_BAT_VOL=num*489/100;
 	
 	//CH6 VIN current
 	adc=0;
@@ -605,7 +640,14 @@ void BSP_SMB_TADC(SMB_TADC *smb_tadc)
 	adc=temp;
 	temp=BSP_I2C2_Read(SMB_ADDRESS, 0x3670, I2C_MEMADD_SIZE_16BIT);
 	adc=(adc<<8)+temp;
-	smb_tadc->CH6_VIN_CURRENT=adc*140/10;
+	if(adc>0x3ff)
+	{	
+		adc=(~(adc-1))&(0x03ff);		
+		num=(int32_t)(-1*adc);
+	}
+	else 
+		num=(int32_t)adc; 
+	smb_tadc->CH6_VIN_CURRENT=num*140/10;
 	
 	//CH7 VIN voltage
 	adc=0;
@@ -613,7 +655,14 @@ void BSP_SMB_TADC(SMB_TADC *smb_tadc)
 	adc=temp;
 	temp=BSP_I2C2_Read(SMB_ADDRESS, 0x3672, I2C_MEMADD_SIZE_16BIT);
 	adc=(adc<<8)+temp;
-	smb_tadc->CH7_VIN_VOL=adc*244/10;
+	if(adc>0x3ff)
+	{	
+		adc=(~(adc-1))&(0x03ff);		
+		num=(int32_t)(-1*adc);
+	}
+	else 
+		num=(int32_t)adc; 
+	smb_tadc->CH7_VIN_VOL=num*244/10;
 }
 
 void BSP_SMB_BAT_Current_Start(void)
@@ -621,14 +670,14 @@ void BSP_SMB_BAT_Current_Start(void)
 	//enabel TADC
 	BSP_I2C2_Write(SMB_ADDRESS, 0x3646, I2C_MEMADD_SIZE_16BIT, 0x80);	
 	//request TADC
-	BSP_I2C2_Write(SMB_ADDRESS, 0x3651, I2C_MEMADD_SIZE_16BIT, 0x10);		
+	BSP_I2C2_Write(SMB_ADDRESS, 0x3651, I2C_MEMADD_SIZE_16BIT, 0xff);		
 }
 
-uint32_t BSP_SMB_BAT_Current(void)
+int32_t BSP_SMB_BAT_Current(void)
 {
 	uint8_t temp;
 	uint32_t adc;
-	uint32_t current;	
+	int32_t current,num;	
 	
 	//CH4 BAT current
 	adc=0;
@@ -636,7 +685,30 @@ uint32_t BSP_SMB_BAT_Current(void)
 	adc=temp;
 	temp=BSP_I2C2_Read(SMB_ADDRESS, 0x3666, I2C_MEMADD_SIZE_16BIT);
 	adc=(adc<<8)+temp;
-	current=adc*196/10;
+	if(adc>0x3ff)
+	{	
+		adc=(~(adc-1))&(0x03ff);		
+		num=(int32_t)(-1*adc);
+	}
+	else 
+		num=(int32_t)adc; 
+	current=num*196/10;
 	return current;
 }
+
+void BSP_SMB_DCIN_INT_Enable(void)
+{
+	//enable int
+	if((BSP_I2C2_Write(SMB_ADDRESS, 0x1415, I2C_MEMADD_SIZE_16BIT, 0x10))!=HAL_OK)
+		printf("SMB1381 INT enable setting error!\n\r");	
+}
+
+void BSP_SMB_DCIN_INT_Disable(void)
+{	
+	//disable int
+	if((BSP_I2C2_Write(SMB_ADDRESS, 0x1416, I2C_MEMADD_SIZE_16BIT, 0xFF))!=HAL_OK)
+		printf("SMB1381 INT enable setting error!\n\r");
+}	
+	
+	
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
