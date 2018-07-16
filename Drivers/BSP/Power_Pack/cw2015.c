@@ -325,7 +325,7 @@ uint8_t cw_por(void)
 	return 0;
 }
 
-uint8_t BSP_CW_Get_Capacity(void)
+uint8_t BSP_CW_Get_Capacity(uint8_t usb)
 {
 	uint8_t ret = 0;
 	uint8_t allow_capacity;
@@ -333,7 +333,8 @@ uint8_t BSP_CW_Get_Capacity(void)
 	//uint8_t reset_val;
 	uint8_t cw_capacity;
 	//int charge_time;
-
+	
+	cw_bat.usb_online=usb;
 	ret = cw_read(REG_SOC, &reg_val);
 	if(ret)
 	{
@@ -342,19 +343,23 @@ uint8_t BSP_CW_Get_Capacity(void)
         
 	cw_capacity = reg_val;
 	
-	if ((cw_capacity < 0) || (cw_capacity > 100)) {
+	if ((cw_capacity < 0) || (cw_capacity > 100))
+	{
                 // "get cw_capacity error; cw_capacity = %d\n"
-        reset_loop++;
-		if (reset_loop >5) { 
+    reset_loop++;
+		if (reset_loop >5)
+		{ 
 			ret = cw_por(); //por ic
 			if(ret)
 				return -1;
 			reset_loop =0;               
 		}                   
-        return cw_bat.capacity;
-    }else {
-        reset_loop =0;
-    }
+    return cw_bat.capacity;
+  }
+	else 
+	{
+    reset_loop =0;
+  }
 	
 	
 	if(((cw_bat.usb_online == 1) && (cw_capacity == (cw_bat.capacity - 1)))
@@ -434,7 +439,7 @@ uint8_t BSP_CW_Get_Capacity(void)
 	return(cw_capacity);
 }
 
-uint16_t cw_get_vol(void)
+uint16_t BSP_CW_GET_Vol(void)
 {
 	uint8_t ret = 0;
 	uint8_t get_ad_times = 0;
@@ -500,7 +505,7 @@ uint16_t cw_get_time_to_empty(void)
 void update_capacity(void)
 {
 	int cw_capacity;
-	cw_capacity = BSP_CW_Get_Capacity();
+	cw_capacity = BSP_CW_Get_Capacity(cw_bat.usb_online);
 	if((cw_capacity >= 0) && (cw_capacity <= 100) && (cw_bat.capacity != cw_capacity))
 	{       
 		cw_bat.capacity = cw_capacity;
@@ -511,7 +516,7 @@ void update_capacity(void)
 void update_vol(void)
 {
 	unsigned int cw_voltage;
-	cw_voltage = cw_get_vol();
+	cw_voltage = BSP_CW_GET_Vol();
 	if(cw_voltage == 1){
 		//read voltage error
 		cw_bat.voltage = cw_bat.voltage;
@@ -579,7 +584,7 @@ static void cw_bat_gpio_init(void)
 */
 
 ///////////////////////////////////////MCU????????.//////////////////////////////////////
-uint8_t cw_bat_init(void)
+uint8_t BSP_CW_BAT_Init(void)
 {
 	uint8_t ret;
 	uint8_t loop = 0;
@@ -597,7 +602,7 @@ uint8_t cw_bat_init(void)
 #ifdef CW2015_GET_RRT
 	cw_bat.time_to_empty = 0;
 #endif
-	cw_bat.alt = 0;
+	cw_bat.alt = 3;
 	
 	return ret;	
 }

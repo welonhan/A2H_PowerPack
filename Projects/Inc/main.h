@@ -55,10 +55,12 @@
 #define __PACK_BSP_VERSION_MAIN   (0x01) /*!< [31:24] main version */
 #define __PACK_BSP_VERSION_SUB   	(0x00) /*!< [23:16] sub1 version */
 
-#define __PACK_BSP_VERSION        ((__PACK_BSP_VERSION_MAIN << 8)\
+//#define __PACK_BSP_VERSION        ((__PACK_BSP_VERSION_MAIN << 8)\
                                                  |(__PACK_BSP_VERSION_SUB))
                                             
-																								 
+#define TXBUFFERSIZE_U1   		0x20
+//uint8_t TxBuffer_U1[TXBUFFERSIZE_U1] = {0}; //transmitting byte per byte
+
 /* Exported types ------------------------------------------------------------*/
 typedef struct
 {
@@ -70,6 +72,115 @@ typedef struct
 	uint8_t 	PACK_SOC;
 	uint16_t	PHONE_USB_VOLTAGE;
 }PACK_INFO;
+
+typedef struct
+{
+	uint8_t		SOF_HIGH;
+	uint8_t		SOF_LOW;
+	uint8_t		LENGTH;
+	uint8_t		CMD_TYPE;
+	uint8_t		CMD;
+	uint8_t		VOLTAGE_HIGH;
+	uint8_t		VOLTAGE_LOW;
+	uint8_t		CURRENT_HIGH;
+	uint8_t		CURRENT_LOW;
+	uint8_t		SOC;
+	uint8_t		ACC;
+	uint8_t 	STATUS;
+	uint8_t		CRC_HIGH;
+	uint8_t		CRC_LOW;
+}UART1_CHARGING;
+
+typedef struct
+{
+	uint8_t		SOF_HIGH;
+	uint8_t		SOF_LOW;
+	uint8_t		LENGTH;
+	uint8_t		CMD_TYPE;
+	uint8_t		CMD;
+	uint8_t		NUM;
+	uint8_t		SIZE;
+	uint8_t		CRC_HIGH;
+	uint8_t		CRC_LOW;
+}UART1_TRANSFER_INITIAL;
+
+typedef struct
+{
+	uint8_t		SOF_HIGH;
+	uint8_t		SOF_LOW;
+	uint8_t		LENGTH;
+	uint8_t		CMD_TYPE;
+	uint8_t		DATA[16];
+	uint8_t		CRC_HIGH;
+	uint8_t		CRC_LOW;
+}UART1_TRANSFER_DATA;
+
+typedef struct
+{
+	uint8_t		SOF_HIGH;
+	uint8_t		SOF_LOW;
+	uint8_t		LENGTH;
+	uint8_t		CMD_TYPE;
+	uint8_t 	CMD;
+	uint8_t		MVERSION;
+	uint8_t		SVERSION;	
+	uint8_t		CRC_HIGH;
+	uint8_t		CRC_LOW;
+}UART1_FIRMWARE;
+
+typedef enum
+{
+  CMD_CHARGING = 0x11,
+	CMD_UART_TRANSFER = 0x12,
+	CMD_FIRMWARE = 0x13  
+} CMD_TYPE;
+
+typedef enum
+{
+  ACC_NULL = 0,
+  ACC_CAMERA	
+} ACC_TypeDef;
+
+typedef enum
+{
+  PHONE_NO_ACK = 0,
+  PHONE_ACK	
+} PH_ACK;
+
+typedef enum
+{
+  PACK_NO_ACK = 0,
+  PACK_ACK	
+} PK_ACK;
+
+typedef struct
+{
+	PK_ACK		ACK_PACK;
+	uint8_t 	TX_BUF[TXBUFFERSIZE_U1];
+}UART1_TX_QUEUE;
+
+typedef struct
+{
+	PH_ACK 		ACK_PHONE;
+	CMD_TYPE	CMD_T;	
+}UART1_RX_QUEUE;
+
+typedef struct
+{
+	uint16_t	EXTPWR_VOLTAGE;
+	uint8_t 	PHONE_SOC;
+}PHONE_INFO;
+
+typedef enum
+{
+	STATUS_STANDBY=0,
+	STATUS_USB2PACK,
+	STATUS_USB2BOTH,
+	STATUS_USB2PHONE,
+	STATUS_BOOST2PHONE,
+	STATUS_PHONE2PACK
+}PACK_STATUS;
+
 
 /* Exported constants --------------------------------------------------------*/
 /* Exported macro ------------------------------------------------------------*/

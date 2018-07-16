@@ -39,7 +39,7 @@
 
 #define CONFIG_UPDATE_FLG       (0x1<<1)
 
-#define ATHD                    (0x0<<3)        //ATHD = 0%
+#define ATHD                    (0x3<<3)        //ATHD = 0%
 
 #define SIZE_BATINFO        64
 
@@ -74,9 +74,9 @@ typedef struct tagSTRUCT_CW_BATTERY {
 
 uint8_t BSP_CW_Init(void);
 uint8_t BSP_CW_Release_Alrt_Pin(void);
-uint8_t BSP_CW_Get_Capacity(void);
-
-
+uint8_t BSP_CW_Get_Capacity(uint8_t usb);
+uint16_t BSP_CW_GET_Vol(void);
+uint8_t BSP_CW_BAT_Init(void);
 #ifdef __cplusplus
 }
 #endif
