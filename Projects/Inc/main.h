@@ -86,6 +86,25 @@ typedef struct
 	uint8_t		CURRENT_LOW;
 	uint8_t		SOC;
 	uint8_t		ACC;
+	uint8_t 	CHARGE_STATUS;
+	uint8_t 	STATUS;
+	uint8_t		CRC_HIGH;
+	uint8_t		CRC_LOW;
+}UART1_CHARGING_ACK;
+
+typedef struct
+{
+	uint8_t		SOF_HIGH;
+	uint8_t		SOF_LOW;
+	uint8_t		LENGTH;
+	uint8_t		CMD_TYPE;
+	uint8_t		CMD;
+	uint8_t		VOLTAGE_HIGH;
+	uint8_t		VOLTAGE_LOW;
+	uint8_t		CURRENT_HIGH;
+	uint8_t		CURRENT_LOW;
+	uint8_t		SOC;
+	uint8_t		ACC;
 	uint8_t 	STATUS;
 	uint8_t		CRC_HIGH;
 	uint8_t		CRC_LOW;
@@ -123,16 +142,20 @@ typedef struct
 	uint8_t		CMD_TYPE;
 	uint8_t 	CMD;
 	uint8_t		MVERSION;
-	uint8_t		SVERSION;	
+	uint8_t		SVERSION;
+	uint8_t		STATUS;	
 	uint8_t		CRC_HIGH;
 	uint8_t		CRC_LOW;
-}UART1_FIRMWARE;
+}UART1_FIRMWARE_ACK;
 
 typedef enum
 {
-  CMD_CHARGING = 0x11,
+  CMD_CHARGING = 0x11,	
 	CMD_UART_TRANSFER = 0x12,
-	CMD_FIRMWARE = 0x13  
+	CMD_FIRMWARE = 0x13, 
+	CMD_CHARGING_ACK = 0x91,	
+	CMD_UART_TRANSFER_ACK = 0x92,
+	CMD_FIRMWARE_ACK = 0x93 	
 } CMD_TYPE;
 
 typedef enum

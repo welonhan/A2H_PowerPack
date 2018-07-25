@@ -189,7 +189,7 @@ void delayms(uint32_t);
 void usb_charging_task(USB_TYPE usb_type);
 void uart1_rx_no_ack_handle(uint8_t *rxdata, PHONE_INFO *info);
 uint16_t crc16(uint8_t *data, uint8_t data_len);
-void uart1_rx_ack_handle(uint8_t *rxdata, UART1_TX_QUEUE *tx_ack_queue, PHONE_INFO *info);
+void uart1_rx_ack_handle(uint8_t *uart_rxdata, uint8_t *queue_num, UART1_TX_QUEUE (*tx_ack_queue)[3], PHONE_INFO *info);
 void invert_uint8(uint8_t *dbuff, uint8_t *srcbuff);
 void invert_uint16(uint16_t *dbuff, uint16_t *srcbuff);
 void uart1_tx_charging_data_handle(USB_TYPE *usb_type, PACK_INFO *pk_info,UART1_TX_QUEUE *tx_queue);
@@ -448,7 +448,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     if(HAL_GPIO_ReadPin(SMB_STAT_PIN_GPIO_PORT,SMB_STAT_PIN)==0)
 		{
 			if((xSemaphoreGiveFromISR( xCountingSemaphore_smb, &xHigherPriorityTaskWoken_smb))!=pdPASS)
-				printf("UART IRQ error\n\r");	
+				printf("SMB STATE PIN IRQ error\n\r");	
 		}
   }
 
@@ -460,8 +460,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
   else if (GPIO_Pin == BOOST_OCP_INT_PIN)
   {
-      /* Toggle LED2 */
-      BSP_LED_Toggle(LED2);
+    printf("BAT OCP PIN IRQ\n\r");
+		HAL_GPIO_WritePin(BOOST_ENABLE_PIN_GPIO_PORT, 	BOOST_ENABLE_PIN,		GPIO_PIN_SET);
   }
 
   else if (GPIO_Pin == KEY_PIN)
@@ -495,7 +495,14 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   else if (GPIO_Pin == FG_INT_PIN)
   {
        /* Toggle LED2 */
-       BSP_LED_Toggle(LED2);
+    printf("Pack soc < 3!!\n\r");
+		BSP_CW_Release_Alrt_Pin();
+		pack_info.PACK_SOC=3;
+		xStatus=xQueueSendToBackFromISR( xQueue_pack_info, &pack_info, xHigherPriorityTaskWoken );
+		if( xStatus != pdPASS )
+		{
+			printf("Send to queue error!\n\r");	
+		}	
   }
   
 }
@@ -711,7 +718,7 @@ static void LED_task5(void const *argument)
 static void UART1_RX_task6(void const *argument)
 {
 	(void) argument;
-  uint8_t i;
+  uint8_t i,ack_num;
 	
 	portBASE_TYPE xStatus;
 	uint16_t xTicksToWait=100 / portTICK_RATE_MS;		
@@ -719,7 +726,7 @@ static void UART1_RX_task6(void const *argument)
 	//PACK_INFO rptr;	
 	portBASE_TYPE xStatus_queue;
 	
-	UART1_TX_QUEUE tx_queue;	
+	UART1_TX_QUEUE tx_queue[3];	
 	UART1_RX_QUEUE rx_queue;	
 	PHONE_INFO phone_info;
 	phone_info.EXTPWR_VOLTAGE=0;
@@ -731,35 +738,51 @@ static void UART1_RX_task6(void const *argument)
 	
 	for(;;)
 	{			
-		xStatus_queue=xQueueReceive( xQueue_uart1_rx, &rx_queue, portMAX_DELAY );
-		if (xStatus_queue == pdPASS) 
-		{
+		//xStatus_queue=xQueueReceive( xQueue_uart1_rx, &rx_queue, portMAX_DELAY );
+		//if (xStatus_queue == pdPASS) 
+		//{
 			memset(RxBuffer_U1, 0, RXBUFFERSIZE_U1);		
 			if(HAL_UART_Receive_IT(&Uart1Handle, RxBuffer_U1, RXBUFFERSIZE_U1) != HAL_OK)
 				 printf("uart1 int error\n\r");
-			xSemaphoreTake( xSemaphore_uart1_int, portMAX_DELAY );		
+			//xSemaphoreTake( xSemaphore_uart1_int, portMAX_DELAY );		
 			
 			if(rx_queue.ACK_PHONE==PHONE_NO_ACK)
-				uart1_rx_no_ack_handle(RxBuffer_U1, &phone_info);
-			else
+			{	
+				xStatus=xSemaphoreTake( xSemaphore_uart1_int, xTicksToWait );		//pack send command, phone ack, if >100ms no ack get, error
+				if(xStatus==pdPASS)
+				{	
+					uart1_rx_no_ack_handle(RxBuffer_U1, &phone_info);
+					pack_info.PHONE_SOC=phone_info.PHONE_SOC;
+					pack_info.PHONE_USB_VOLTAGE=phone_info.EXTPWR_VOLTAGE;
+					xStatus=xQueueSendToBack( xQueue_pack_info, &pack_info, xTicksToWait );
+					if( xStatus != pdPASS )
+					{
+						printf("UART1 rx task Send to pack info queue error!\n\r");	
+					}	
+				}
+			}
+			else	//phone send command, need pack ack
 			{
-				uart1_rx_ack_handle(RxBuffer_U1,&tx_queue,&phone_info);
-				tx_queue.ACK_PACK=PACK_ACK;
-				xStatus=xQueueSendToBack( xQueue_uart1_tx, &tx_queue, xTicksToWait );
+				xSemaphoreTake( xSemaphore_uart1_int, portMAX_DELAY );
+				uart1_rx_ack_handle(RxBuffer_U1,&ack_num, &tx_queue,&phone_info);
+				pack_info.PHONE_SOC=phone_info.PHONE_SOC;
+				pack_info.PHONE_USB_VOLTAGE=phone_info.EXTPWR_VOLTAGE;
+				xStatus=xQueueSendToBack( xQueue_pack_info, &pack_info, portMAX_DELAY );
 				if( xStatus != pdPASS )
 				{
-					printf("Send to queue error!\n\r");	
+					printf("UART1 rx task Send to pack info queue error!\n\r");	
 				}	
-			}
-			
-			pack_info.PHONE_SOC=phone_info.PHONE_SOC;
-			pack_info.PHONE_USB_VOLTAGE=phone_info.EXTPWR_VOLTAGE;
-			xStatus=xQueueSendToBack( xQueue_pack_info, &pack_info, xTicksToWait );
-			if( xStatus != pdPASS )
-			{
-				printf("UART1 rx task Send to queue error!\n\r");	
-			}			
-		}			
+				for(i=0;i<ack_num;i++)
+				{
+					tx_queue[i].ACK_PACK=PACK_ACK;
+					xStatus=xQueueSendToBack( xQueue_uart1_tx, &tx_queue[i], xTicksToWait );
+					if( xStatus != pdPASS )
+					{
+						printf("UART1 rx task Send to uart1 tx queue error!\n\r");	
+					}	
+				}
+			}					
+		//}			
 	}
 }
 
@@ -775,13 +798,15 @@ static void UART1_TX_task7(void const *argument)
 	portBASE_TYPE xStatus_queue;	
 	UART1_TX_QUEUE tx_queue;
 	UART1_RX_QUEUE rx_queue;		
+	/*
 	vTaskDelay(300);
 	rx_queue.ACK_PHONE=PHONE_ACK;
 	xStatus=xQueueSendToBack( xQueue_uart1_rx, &rx_queue, xTicksToWait );
 	if( xStatus != pdPASS )
 	{
 		printf("UART1 tx task Send to queue error!\n\r");	
-	}		
+	}	
+	*/	
 	for(;;)
 	{			
 		memset(&tx_queue, 0, TXBUFFERSIZE_U1+1);
@@ -794,12 +819,14 @@ static void UART1_TX_task7(void const *argument)
 				rx_queue.ACK_PHONE=PHONE_ACK;
 			else
 				rx_queue.ACK_PHONE=PHONE_NO_ACK;
-			xStatus=xQueueSendToBack( xQueue_uart1_rx, &rx_queue, xTicksToWait );
-			if( xStatus != pdPASS )
+			if(pack_info.ATTACH==1)
 			{
-				printf("UART1 tx task Send to queue error!\n\r");	
-			}			
-			
+				xStatus=xQueueSendToBack( xQueue_uart1_rx, &rx_queue, xTicksToWait );
+				if( xStatus != pdPASS )
+				{
+					printf("UART1 tx task Send to queue error!\n\r");	
+				}			
+			}
 		}			
 	}
 }
@@ -927,164 +954,178 @@ void uart1_rx_no_ack_handle(uint8_t *rxdata, PHONE_INFO *info)
 		printf("UART1 RX SOF error\n\r");
 }
 
-void uart1_rx_ack_handle(uint8_t *rxdata, UART1_TX_QUEUE *tx_ack_queue, PHONE_INFO *info)
+
+void uart1_rx_ack_handle(uint8_t *uart_rxdata, uint8_t *queue_num, UART1_TX_QUEUE (*tx_ack_queue)[3], PHONE_INFO *info)
 {
 	uint8_t length,cmd_type, cmd;	
-	UART1_CHARGING charging_packet;
+	UART1_CHARGING_ACK charging_packet;
 	UART1_TRANSFER_INITIAL transfer_packet_initial;
 	UART1_TRANSFER_DATA transfer_packet_data;
-	UART1_FIRMWARE fw_packet;
+	UART1_FIRMWARE_ACK fw_packet;
+	uint8_t *rxdata;
 	
 	uint16_t phone_voltage, phone_current;
 	uint8_t phone_soc,num ,size;
 	uint8_t gpio;
 	uint16_t rx_crc,crc;
+	uint8_t i=0,j=0;
+	*queue_num=0;
 	
-	if((*rxdata==0xaa)&&(*(rxdata+1)==0x55))
+	while(i<RXBUFFERSIZE)
 	{
-		length=*(rxdata+2);
-		cmd_type=*(rxdata+3);
-		cmd=*(rxdata+4);		
-		
-		if(cmd_type==CMD_CHARGING)//charging
+		if((*(uart_rxdata+i)==0xaa)&&(*(uart_rxdata+i+1)==0x55))
 		{
-			phone_voltage=*(rxdata+5);
-			phone_voltage=(phone_voltage<<8)+*(rxdata+6);			
-			
-			phone_current=*(rxdata+7);
-			phone_current=(phone_current<<8)+*(rxdata+8);
-			phone_soc=*(rxdata+9);
-			info->PHONE_SOC=phone_soc;
-			
-			gpio=*(rxdata+10);
-			rx_crc=*(rxdata+11);
-			rx_crc=(rx_crc<<8)+*(rxdata+12);
-			
-			crc=crc16(rxdata,length+1);
-			if(rx_crc==crc)	//crc ok
+			rxdata=uart_rxdata+i;
+			(*queue_num)++;
+			if((*rxdata==0xaa)&&(*(rxdata+1)==0x55))
 			{
-				charging_packet.SOF_HIGH=0x55;
-				charging_packet.SOF_LOW=0xaa;
-				charging_packet.LENGTH=11;
-				charging_packet.CMD_TYPE=CMD_CHARGING;
-				charging_packet.CMD=0x01;
-				if((phone_voltage>=4800)&&(phone_voltage<=12000))
+				length=*(rxdata+2);
+				i=i+length+3;
+				cmd_type=*(rxdata+3);
+				cmd=*(rxdata+4);		
+				
+				if(cmd_type==CMD_CHARGING_ACK)//charging
 				{
-					charging_packet.VOLTAGE_HIGH=*(rxdata+5);
-					charging_packet.VOLTAGE_LOW=*(rxdata+6);
-					charging_packet.CURRENT_HIGH=*(rxdata+7);
-					charging_packet.CURRENT_LOW=*(rxdata+8);
-					info->EXTPWR_VOLTAGE=phone_voltage;
-					printf("phone USB voltage:%dmV\n\r",phone_voltage);
-				}	
-				else
+					phone_voltage=*(rxdata+5);
+					phone_voltage=(phone_voltage<<8)+*(rxdata+6);			
+					
+					phone_current=*(rxdata+7);
+					phone_current=(phone_current<<8)+*(rxdata+8);
+					phone_soc=*(rxdata+9);
+					info->PHONE_SOC=phone_soc;
+					
+					gpio=*(rxdata+10);
+					rx_crc=*(rxdata+11);
+					rx_crc=(rx_crc<<8)+*(rxdata+12);
+					
+					crc=crc16(rxdata,length+1);
+					if(rx_crc==crc)	//crc ok
+					{
+						charging_packet.SOF_HIGH=0x55;
+						charging_packet.SOF_LOW=0xaa;
+						charging_packet.LENGTH=12;
+						charging_packet.CMD_TYPE=CMD_CHARGING;
+						charging_packet.CMD=0x01;
+						if((phone_voltage>=4800)&&(phone_voltage<=12000))
+						{
+							charging_packet.VOLTAGE_HIGH=*(rxdata+5);
+							charging_packet.VOLTAGE_LOW=*(rxdata+6);
+							charging_packet.CURRENT_HIGH=*(rxdata+7);
+							charging_packet.CURRENT_LOW=*(rxdata+8);
+							info->EXTPWR_VOLTAGE=phone_voltage;
+							printf("phone USB voltage:%dmV\n\r",phone_voltage);
+						}	
+						else
+						{
+							charging_packet.VOLTAGE_HIGH=0;
+							charging_packet.VOLTAGE_LOW=0;
+							charging_packet.CURRENT_HIGH=0;
+							charging_packet.CURRENT_LOW=0;
+							info->EXTPWR_VOLTAGE=0;
+						}	
+						
+						if(gpio&0x01)
+							HAL_GPIO_WritePin(GPIO1_F_PIN_GPIO_PORT, 		GPIO1_F_PIN,		GPIO_PIN_SET);
+						else
+							HAL_GPIO_WritePin(GPIO1_F_PIN_GPIO_PORT, 		GPIO1_F_PIN,		GPIO_PIN_RESET);
+						
+						if(gpio&0x02)
+							HAL_GPIO_WritePin(GPIO2_F_PIN_GPIO_PORT, 		GPIO2_F_PIN,		GPIO_PIN_SET);
+						else
+							HAL_GPIO_WritePin(GPIO2_F_PIN_GPIO_PORT, 		GPIO2_F_PIN,		GPIO_PIN_RESET);
+						charging_packet.SOC=pack_info.soc;
+						charging_packet.ACC=acc_type;
+						charging_packet.CHARGE_STATUS=pack_status;
+						charging_packet.STATUS=0x90;
+						crc=crc16(&charging_packet.SOF_HIGH,sizeof(charging_packet)-2);
+						charging_packet.CRC_HIGH=(uint8_t )(crc>>8);
+						charging_packet.CRC_LOW=(uint8_t )(crc&0xFF);
+						j=*queue_num-1;
+						memcpy(tx_ack_queue[j]->TX_BUF,&charging_packet,sizeof(charging_packet));				
+					}//crc ok
+					else	//crc error
+					{
+						printf("crc error\n\r");
+					}//crc error
+				}// cmd charging
+				else if(cmd_type==CMD_UART_TRANSFER_ACK)//uart transfer
 				{
-					charging_packet.VOLTAGE_HIGH=0;
-					charging_packet.VOLTAGE_LOW=0;
-					charging_packet.CURRENT_HIGH=0;
-					charging_packet.CURRENT_LOW=0;
-					info->EXTPWR_VOLTAGE=0;
+					if(cmd==0x00)		//initial packet
+					{
+						num=*(rxdata+5);
+						size=*(rxdata+6);
+						
+						uart1_packet_num=num;
+						uart1_packet_size=size;
+						
+						rx_crc=*(rxdata+7);
+						rx_crc=(rx_crc<<8)+*(rxdata+8);
+						
+					}
+					else
+					{
+						rx_crc=*(rxdata+length+1);
+						rx_crc=(rx_crc<<8)+*(rxdata+length+2);
+						
+					}
+					crc=crc16(rxdata,length+1);
+					if(rx_crc==crc)	//crc ok
+					{
+						transfer_packet_initial.SOF_HIGH=0x55;
+						transfer_packet_initial.SOF_LOW=0xaa;
+						transfer_packet_initial.LENGTH=6;
+						transfer_packet_initial.CMD_TYPE=CMD_UART_TRANSFER;
+						transfer_packet_initial.CMD=cmd;
+						transfer_packet_initial.NUM=uart1_packet_num;
+						transfer_packet_initial.SIZE=uart1_packet_size;
+						
+						crc=crc16(&transfer_packet_initial.SOF_HIGH,sizeof(transfer_packet_initial)-2);
+						transfer_packet_initial.CRC_HIGH=(uint8_t )(crc>>8);
+						transfer_packet_initial.CRC_LOW=(uint8_t )(crc&0xFF);
+						j=*queue_num-1;
+						memcpy(tx_ack_queue[j]->TX_BUF,&transfer_packet_initial,sizeof(transfer_packet_initial));	
+						
+										
+					}//initial packet
+					else	//crc error
+					{
+						printf("uart1 rx UART transfer crc error\n\r");
+					}//crc error					
+				}//uart transfer
+				else if(cmd_type==CMD_FIRMWARE_ACK)//fimware version
+				{
+					rx_crc=*(rxdata+5);
+					rx_crc=(rx_crc<<8)+*(rxdata+6);
+					crc=crc16(rxdata,length+1);
+					if(rx_crc==crc)				
+					{
+						fw_packet.SOF_HIGH=0x55;
+						fw_packet.SOF_LOW=0xaa;
+						fw_packet.LENGTH=7;
+						fw_packet.CMD_TYPE=CMD_FIRMWARE;
+						fw_packet.CMD=0x00;
+						fw_packet.MVERSION=__PACK_BSP_VERSION_MAIN;
+						fw_packet.SVERSION=__PACK_BSP_VERSION_SUB;
+						fw_packet.STATUS=0x90;
+						crc=crc16(&fw_packet.SOF_HIGH,sizeof(fw_packet)-2);
+						fw_packet.CRC_HIGH=(uint8_t )(crc>>8);
+						fw_packet.CRC_LOW=(uint8_t )(crc&0xFF);
+						j=*queue_num-1;
+						memcpy(tx_ack_queue[j]->TX_BUF,&fw_packet,sizeof(fw_packet));
+					}	
+					else	//crc error
+					{
+						printf("uart1 rx firmare crc error\n\r");
+					}//crc error					
 				}	
-				
-				if(gpio&0x01)
-					HAL_GPIO_WritePin(GPIO1_F_PIN_GPIO_PORT, 		GPIO1_F_PIN,		GPIO_PIN_SET);
-				else
-					HAL_GPIO_WritePin(GPIO1_F_PIN_GPIO_PORT, 		GPIO1_F_PIN,		GPIO_PIN_RESET);
-				
-				if(gpio&0x02)
-					HAL_GPIO_WritePin(GPIO2_F_PIN_GPIO_PORT, 		GPIO2_F_PIN,		GPIO_PIN_SET);
-				else
-					HAL_GPIO_WritePin(GPIO2_F_PIN_GPIO_PORT, 		GPIO2_F_PIN,		GPIO_PIN_RESET);
-				
-				charging_packet.ACC=acc_type;
-				charging_packet.STATUS=pack_status;
-				crc=crc16(&charging_packet.SOF_HIGH,sizeof(charging_packet)-2);
-				charging_packet.CRC_HIGH=(uint8_t )(crc>>8);
-				charging_packet.CRC_LOW=(uint8_t )(crc&0xFF);
-				
-				memcpy(tx_ack_queue->TX_BUF,&charging_packet,sizeof(charging_packet));				
-			}//crc ok
-			else	//crc error
-			{
-				
-			}//crc error
-		}// cmd charging
-		else if(cmd_type==CMD_UART_TRANSFER)//uart transfer
-		{
-			if(cmd==0x00)		//initial packet
-			{
-				num=*(rxdata+5);
-				size=*(rxdata+6);
-				
-				uart1_packet_num=num;
-				uart1_packet_size=size;
-				
-				rx_crc=*(rxdata+7);
-				rx_crc=(rx_crc<<8)+*(rxdata+8);
-				
 			}
 			else
-			{
-				rx_crc=*(rxdata+length+1);
-				rx_crc=(rx_crc<<8)+*(rxdata+length+2);
-				
-			}
-			crc=crc16(rxdata,length+1);
-			if(rx_crc==crc)	//crc ok
-			{
-				transfer_packet_initial.SOF_HIGH=0x55;
-				transfer_packet_initial.SOF_LOW=0xaa;
-				transfer_packet_initial.LENGTH=6;
-				transfer_packet_initial.CMD_TYPE=CMD_UART_TRANSFER;
-				transfer_packet_initial.CMD=cmd;
-				transfer_packet_initial.NUM=uart1_packet_num;
-				transfer_packet_initial.SIZE=uart1_packet_size;
-				
-				crc=crc16(&transfer_packet_initial.SOF_HIGH,sizeof(transfer_packet_initial)-2);
-				transfer_packet_initial.CRC_HIGH=(uint8_t )(crc>>8);
-				transfer_packet_initial.CRC_LOW=(uint8_t )(crc&0xFF);
-				
-				memcpy(tx_ack_queue->TX_BUF,&transfer_packet_initial,sizeof(transfer_packet_initial));	
-				
-								
-			}//initial packet
-			else	//crc error
-			{
-				printf("uart1 rx UART transfer crc error\n\r");
-			}//crc error					
-		}//uart transfer
-		else if(cmd_type==CMD_FIRMWARE)//fimware version
-		{
-			rx_crc=*(rxdata+5);
-			rx_crc=(rx_crc<<8)+*(rxdata+6);
-			crc=crc16(rxdata,length+1);
-			if(rx_crc==crc)				
-			{
-				fw_packet.SOF_HIGH=0x55;
-				fw_packet.SOF_LOW=0xaa;
-				fw_packet.LENGTH=6;
-				fw_packet.CMD_TYPE=CMD_FIRMWARE;
-				fw_packet.CMD=0x00;
-				fw_packet.MVERSION=__PACK_BSP_VERSION_MAIN;
-				fw_packet.SVERSION=__PACK_BSP_VERSION_SUB;
-				
-				crc=crc16(&fw_packet.SOF_HIGH,sizeof(fw_packet)-2);
-				fw_packet.CRC_HIGH=(uint8_t )(crc>>8);
-				fw_packet.CRC_LOW=(uint8_t )(crc&0xFF);
-				
-				memcpy(tx_ack_queue->TX_BUF,&fw_packet,sizeof(fw_packet));
-			}	
-			else	//crc error
-			{
-				printf("uart1 rx firmare crc error\n\r");
-			}//crc error					
-		}	
-	}
-	else
-		printf("UART1 RX SOF error\n\r");
+				printf("UART1 RX SOF error\n\r");
+		}
+		else
+			i++;
+	}//while
 }
-
-
 uint16_t crc16(uint8_t *data, uint8_t data_len)
 {
 	uint16_t crc_in=0x0000;

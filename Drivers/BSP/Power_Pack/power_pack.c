@@ -694,14 +694,12 @@ void	BSP_EXIT15_10_IRQHandler_Config(void)
 	FG_INT_PIN_CLK_ENABLE() ;
 	
 	GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;  
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;  
 	
 	GPIO_InitStruct.Pin = FG_INT_PIN;
   HAL_GPIO_Init(FG_INT_PIN_PIN_GPIO_PORT, &GPIO_InitStruct);	
-	
-	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
 	  
-  HAL_NVIC_SetPriority((IRQn_Type)EXTI15_10_IRQn, 12, 0);
+  HAL_NVIC_SetPriority((IRQn_Type)EXTI15_10_IRQn, 7, 0);
 	HAL_NVIC_EnableIRQ((IRQn_Type)(EXTI15_10_IRQn));
 }
 
@@ -941,8 +939,7 @@ void BSP_POWER_PACK_Init(void)
 	BSP_ATTACH_IRQHandler_Config();
  	BSP_KEY_IRQHandler_Config();
 	printf("KEY init ok!\n\r");
-	
- 	BSP_EXIT15_10_IRQHandler_Config();
+	BSP_EXIT15_10_IRQHandler_Config();
 	
 }
 
