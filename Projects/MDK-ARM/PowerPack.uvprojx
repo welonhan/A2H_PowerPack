@@ -986,6 +986,11 @@
               <FileType>1</FileType>
               <FilePath>..\..\FreeRTOS\Source\timers.c</FilePath>
             </File>
+            <File>
+              <FileName>event_groups.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\FreeRTOS\Source\event_groups.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

@@ -97,7 +97,7 @@ void BSP_SMB_Init(void)
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1460, I2C_MEMADD_SIZE_16BIT, 0x08);		//DC IN allow 5V to 9V
 	BSP_I2C2_Write(SMB_ADDRESS, 0x1470, I2C_MEMADD_SIZE_16BIT, 0x52);		//DC IN current limit to 2A
 	
-	BSP_I2C2_Write(SMB_ADDRESS, 0x1440, I2C_MEMADD_SIZE_16BIT, 0x1);		//suspend
+	//BSP_I2C2_Write(SMB_ADDRESS, 0x1440, I2C_MEMADD_SIZE_16BIT, 0x1);		//suspend
 	
 	/*********************************DC IN******************************************/
 	
@@ -433,8 +433,8 @@ void BSP_SMB_Charging(USB_TYPE *usb_type)
 		{
 			if(BSP_SMB_SDP_Done())
 				BSP_SMB_USBIN_Limit(500);
-			else
-				BSP_SMB_USBIN_Suspend();
+			//else
+			//	BSP_SMB_USBIN_Suspend();
 			break;
 		}							
 		case OCP_CHARGER:

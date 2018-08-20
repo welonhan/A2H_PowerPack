@@ -111,6 +111,9 @@
 #define configUSE_COUNTING_SEMAPHORES           1
 #define configGENERATE_RUN_TIME_STATS           0
 
+#define configUSE_STATS_FORMATTING_FUNCTIONS 		1
+#define configSUPPORT_DYNAMIC_ALLOCATION				1
+
 #define configUSE_TICKLESS_IDLE     						0
 
 #define configPRE_SLEEP_PROCESSING(x)  OS_PreSleepProcessing(x)

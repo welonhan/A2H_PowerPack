@@ -51,15 +51,24 @@
 #include "semphr.h"
 #include "event_groups.h"
 
-
 #define __PACK_BSP_VERSION_MAIN   (0x01) /*!< [31:24] main version */
 #define __PACK_BSP_VERSION_SUB   	(0x00) /*!< [23:16] sub1 version */
 
-//#define __PACK_BSP_VERSION        ((__PACK_BSP_VERSION_MAIN << 8)\
-                                                 |(__PACK_BSP_VERSION_SUB))
-                                            
 #define TXBUFFERSIZE_U1   		0x20
 //uint8_t TxBuffer_U1[TXBUFFERSIZE_U1] = {0}; //transmitting byte per byte
+
+#define	TASK1_BIT	(1<<0)
+#define	TASK2_BIT	(1<<1)
+#define	TASK3_BIT	(1<<2)
+#define	TASK4_BIT	(1<<3)
+#define	TASK5_BIT	(1<<4)
+#define	TASK6_BIT	(1<<5)
+#define	TASK7_BIT	(1<<6)
+#define	TASK8_BIT	(1<<7)
+#define	TASK9_BIT	(1<<8)
+#define	TASK10_BIT	(1<<9)
+
+#define	TASK_BIT_ALL	0x1FF
 
 /* Exported types ------------------------------------------------------------*/
 typedef struct
@@ -205,9 +214,53 @@ typedef enum
 }PACK_STATUS;
 
 
-/* Exported constants --------------------------------------------------------*/
-/* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
+void SystemClock_Config(void);
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
+void ADC_Data_Handle(void);
+void set_pack_status(PACK_INFO *rptr);
+
+static void UART2_task1(void const *argument);
+static void ADC_task2(void const *argument);
+static void CHG_task3(void const *argument);
+static void SMB_task4(void const *argument)	;
+static void LED_task5(void const *argument)	;
+static void UART1_RX_task6(void const *argument);
+static void UART1_TX_task7(void const *argument);
+static void UART1_RX_HANDLE_task8(void const *argument);
+static void ATTACH_task9(void const *argument);
+static void WDG_task10(void const *argument);
+
+PACK_STATUS get_pack_status(PACK_INFO *ptr);
+static void SYSCLKConfig_STOP(void);
+void DecodeReception(uint16_t *d1,uint16_t *d2);
+void pbfw(void);
+void pbsoc(uint8_t soc);
+void pbphsoc(uint8_t soc);
+void pbusb(uint16_t usb_vol);
+void pbwr(uint16_t addr, uint16_t data);
+void pbrd(uint16_t addr);
+void pbhelp(void);
+void pbadc(void);
+void pbwrcw(uint16_t addr, uint16_t data);
+void pbrdcw(uint16_t addr);
+void led_of_soc(uint8_t soc, uint8_t key);
+void pbpmuxena(uint8_t io);
+void pbpmuxenb(uint8_t io);
+void pbchgen(uint8_t io);
+void pbboosten(uint8_t en);
+void pbboost9ven(uint8_t en);
+void set_pack_path(uint8_t path);
+void usb_charging(USB_TYPE usb_type);
+void delayms(uint32_t);
+void usb_charging_task(USB_TYPE usb_type);
+void uart1_rx_no_ack_handle(uint8_t *rxdata, PHONE_INFO *info);
+uint16_t crc16(uint8_t *data, uint8_t data_len);
+void uart1_rx_ack_handle(uint8_t *uart_rxdata, uint8_t *queue_num, UART1_TX_QUEUE *tx_ack_queue, PHONE_INFO *info);
+void invert_uint8(uint8_t *dbuff, uint8_t *srcbuff);
+void invert_uint16(uint16_t *dbuff, uint16_t *srcbuff);
+void uart1_tx_charging_data_handle(USB_TYPE *usb_type, PACK_INFO *pk_info,UART1_TX_QUEUE *tx_queue);
+void led_flash(void);
 
 #endif /* __MAIN_H */
 

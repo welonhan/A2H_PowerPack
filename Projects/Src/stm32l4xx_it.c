@@ -53,7 +53,7 @@
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 /* I2C handler declared in "main.c" file */
-extern I2C_HandleTypeDef 		I2cHandle;
+//extern I2C_HandleTypeDef 		I2cHandle;
 extern ADC_HandleTypeDef 		AdcHandle;
 extern DMA_HandleTypeDef 		DmaHandle;
 extern UART_HandleTypeDef 	Uart1Handle,Uart2Handle,Uart3Handle;
@@ -206,7 +206,7 @@ void USART3_IRQHandler(void)
   */
 void I2Cx_EV_IRQHandler(void)
 {
-  HAL_I2C_EV_IRQHandler(&I2cHandle);
+  //HAL_I2C_EV_IRQHandler(&I2cHandle);
 }
 
 /**
@@ -217,7 +217,7 @@ void I2Cx_EV_IRQHandler(void)
   */
 void I2Cx_ER_IRQHandler(void)
 {
-  HAL_I2C_ER_IRQHandler(&I2cHandle);
+  //HAL_I2C_ER_IRQHandler(&I2cHandle);
 }
 
 
