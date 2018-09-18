@@ -17,6 +17,9 @@ extern uint16_t   aADCxConvertedData[4];
 extern UART_HandleTypeDef Uart1Handle,Uart2Handle,Uart3Handle;
 
 extern IWDG_HandleTypeDef IwdgHandle;
+
+extern WWDG_HandleTypeDef 						WwdgHandle;
+
 /**
   * @brief  Configures LED GPIO.
   * @param  Led: Specifies the Led to be configured. 
@@ -497,7 +500,7 @@ void BSP_UART3_Init(void)
 /******************************* IWDG Routines *********************************/
 
 /**
-  * @brief  WWDG initialization.
+  * @brief  IWDG initialization.
   * @retval None
   */
 void BSP_IWDG_Init(void)
@@ -511,6 +514,29 @@ void BSP_IWDG_Init(void)
 	if(HAL_IWDG_Init(&IwdgHandle)== HAL_OK)
   {
     printf("IWDG init ok\n\r");
+  }  
+  
+}
+
+/******************************* WWDG Routines *********************************/
+
+/**
+  * @brief  WWDG initialization.
+  * @retval None
+  */
+void BSP_WWDG_Init(void)
+{
+	
+	
+	WwdgHandle.Instance					=WWDG;	
+	WwdgHandle.Init.Counter			=0x7D;						//25ms
+	WwdgHandle.Init.EWIMode			=WWDG_EWI_DISABLE;
+	WwdgHandle.Init.Prescaler		=WWDG_PRESCALER_8;
+	WwdgHandle.Init.Window			=0x7F;	
+
+	if(HAL_WWDG_Init(&WwdgHandle)== HAL_OK)
+  {
+    printf("WWDG init ok\n\r");
   }  
   
 }
@@ -963,7 +989,7 @@ void BSP_POWER_PACK_Init(void)
  	BSP_KEY_IRQHandler_Config();
 	printf("KEY init ok!\n\r");
 	BSP_EXIT15_10_IRQHandler_Config();
-	BSP_IWDG_Init();
+	
 }
 
 

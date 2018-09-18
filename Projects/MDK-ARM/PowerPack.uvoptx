@@ -227,6 +227,10 @@
           <Name>System Viewer\USART1</Name>
           <WinId>35904</WinId>
         </Entry>
+        <Entry>
+          <Name>System Viewer\WWDG</Name>
+          <WinId>35901</WinId>
+        </Entry>
       </SystemViewers>
     </TargetOption>
   </Target>
@@ -1505,7 +1509,7 @@
       <GroupNumber>6</GroupNumber>
       <FileNumber>103</FileNumber>
       <FileType>1</FileType>
-      <tvExp>1</tvExp>
+      <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
       <PathWithFileName>..\..\Drivers\BSP\Power_Pack\power_pack.c</PathWithFileName>
@@ -1537,7 +1541,7 @@
       <GroupNumber>7</GroupNumber>
       <FileNumber>105</FileNumber>
       <FileType>1</FileType>
-      <tvExp>0</tvExp>
+      <tvExp>1</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
       <PathWithFileName>..\..\FreeRTOS\Source\queue.c</PathWithFileName>

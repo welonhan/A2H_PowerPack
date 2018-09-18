@@ -57,7 +57,7 @@
 extern ADC_HandleTypeDef 		AdcHandle;
 extern DMA_HandleTypeDef 		DmaHandle;
 extern UART_HandleTypeDef 	Uart1Handle,Uart2Handle,Uart3Handle;
-
+extern WWDG_HandleTypeDef 						WwdgHandle;
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
 
@@ -196,6 +196,13 @@ void USART3_IRQHandler(void)
 {
   //HAL_NVIC_ClearPendingIRQ(USART3_IRQn);
 	HAL_UART_IRQHandler(&Uart3Handle);
+	
+}
+
+
+void WWDG_IRQHandler(void)
+{
+	HAL_WWDG_IRQHandler(&WwdgHandle);
 	
 }
 /**

@@ -114,7 +114,7 @@
 #define configUSE_STATS_FORMATTING_FUNCTIONS 		1
 #define configSUPPORT_DYNAMIC_ALLOCATION				1
 
-#define configUSE_TICKLESS_IDLE     						0
+#define configUSE_TICKLESS_IDLE     						1
 
 #define configPRE_SLEEP_PROCESSING(x)  OS_PreSleepProcessing(x)
 #define configPOST_SLEEP_PROCESSING(x) OS_PostSleepProcessing(x)

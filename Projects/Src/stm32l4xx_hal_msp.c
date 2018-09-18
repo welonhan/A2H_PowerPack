@@ -369,6 +369,14 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef *hadc)
 	HAL_GPIO_DeInit(BSP_ADC1_CHANNEL_GPIO_PORT, EXT_PWR_ADC1_IN11_PIN);
 }
 
+
+void HAL_WWDG_MspInit(WWDG_HandleTypeDef *hwwdg)
+{	
+	__HAL_RCC_WWDG_CLK_ENABLE();
+	
+	//HAL_NVIC_SetPriority(WWDG_IRQn, 6, 0);
+	//HAL_NVIC_EnableIRQ(WWDG_IRQn);
+}
 /**
   * @}
   */

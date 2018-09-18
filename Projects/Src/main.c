@@ -83,6 +83,8 @@ DMA_HandleTypeDef         		DmaHandle;
 
 IWDG_HandleTypeDef 						IwdgHandle;
 
+WWDG_HandleTypeDef 						WwdgHandle;
+
 I2C_HandleTypeDef 						powerpack_I2c1,powerpack_I2c2;
 uint32_t 											I2c1Timeout = BSP_I2C1_TIMEOUT_MAX;    /*<! Value of Timeout when I2C1 communication fails */
 uint32_t 											I2c2Timeout = BSP_I2C2_TIMEOUT_MAX;    /*<! Value of Timeout when I2C1 communication fails */
@@ -103,13 +105,15 @@ uint16_t 				cw_vbat;
 PACK_STATUS 		pack_status=STATUS_STANDBY;
 ACC_TypeDef 		acc_type;
 
+uint16_t 				wdg_count=0;
+
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 TaskHandle_t UART1_TX_handle, UART1_RX_handle, UART1_RX_handle_pkt, UART2_handle, 
 			UART3_TX_handle, UART3_RX_handle, ADC_handle, CHARGING_handle, SMB_handle,LED_handle,ATTACH_handle,WDG_handle;
 
 EventGroupHandle_t xCreatedEventGroup;
-static xSemaphoreHandle xSemaphore_uart1_int,xSemaphore_uart2_int,xSemaphore_uart3_int;
+static xSemaphoreHandle xSemaphore_uart1_int,xSemaphore_uart2_int,xSemaphore_uart3_int,xSemaphore_wwdg;
 static xSemaphoreHandle xCountingSemaphore_smb, xCountingSemaphore_key, xCountingSemaphore_attach;
 static xQueueHandle xQueue_pack_info, xQueue_uart1_tx, xQueue_uart1_rx_handle;
 static xSemaphoreHandle xMutex_i2c;
@@ -141,7 +145,10 @@ int main(void)
 
 	/* Configure the system clock to 80 MHz */
 	SystemClock_Config();
-		
+	
+	HAL_DBGMCU_EnableDBGSleepMode();
+	HAL_DBGMCU_EnableDBGStopMode();
+	
 	BSP_POWER_PACK_Init();
 		
 	BSP_SMB_Enable();
@@ -198,6 +205,8 @@ int main(void)
 		usb_charging(usb_type);
 	}
 	
+	
+	
 	/* Enable Power Clock */
   __HAL_RCC_PWR_CLK_ENABLE();
   
@@ -210,7 +219,7 @@ int main(void)
 	
 	//xQueue_uart1_rx = xQueueCreate( 3, sizeof( UART1_RX_QUEUE ) );
 
-	xQueue_uart1_rx_handle = xQueueCreate( 3,  sizeof(RxBuffer_U1));
+	xQueue_uart1_rx_handle = xQueueCreate( 5,  sizeof(RxBuffer_U1));
 	
 	xCountingSemaphore_smb = xSemaphoreCreateCounting( 10, 0 );
 		
@@ -230,24 +239,31 @@ int main(void)
 	if(xSemaphore_uart3_int==NULL)
 			printf("xSemaphore uart3 create fail\n\r");
 	
+	xSemaphore_wwdg = xSemaphoreCreateBinary( );
+	if(xSemaphore_wwdg==NULL)
+			printf("xSemaphore wwdg create fail\n\r");
+	
 	xCountingSemaphore_key = xSemaphoreCreateCounting( 10, 0 );
 	if(xCountingSemaphore_key==NULL)
 			printf("xCountingSemaphore key create fail\n\r");
 	
 	xCreatedEventGroup=xEventGroupCreate();
 	if(xCreatedEventGroup==NULL)
-			printf("xCreatedEventGroup create fail\n\r");
+			printf("xCreatedEventGroup create fail\n\r");	
+	
+	BSP_WWDG_Init();
+	wdg_count=0;
 	
 	xTaskCreate((TaskFunction_t)UART2_task1,					"uart2_task1",		300,	NULL,2,	UART2_handle );
 	xTaskCreate((TaskFunction_t)ADC_task2,						"adc_task2",			300,	NULL,2,	ADC_handle );
 	xTaskCreate((TaskFunction_t)CHG_task3,						"chg_task3",			300,	NULL,2,	CHARGING_handle );
 	xTaskCreate((TaskFunction_t)SMB_task4,						"smb_task4",			300,	NULL,3,	SMB_handle );
 	xTaskCreate((TaskFunction_t)LED_task5,						"led_task5",			300,	NULL,2,	LED_handle );
-	xTaskCreate((TaskFunction_t)UART1_RX_task6,				"uart1_rx_task6",	300,	NULL,2,	UART1_RX_handle );
+	xTaskCreate((TaskFunction_t)UART1_RX_task6,				"uart1_rx_task6",	1000,	NULL,2,	UART1_RX_handle );
 	xTaskCreate((TaskFunction_t)UART1_TX_task7,				"uart1_tx_task7",	300,	NULL,2,	UART1_TX_handle );
-	xTaskCreate((TaskFunction_t)UART1_RX_HANDLE_task8,"rx_handle_task8",300,	NULL,2,	UART1_RX_handle_pkt );
+	xTaskCreate((TaskFunction_t)UART1_RX_HANDLE_task8,"rx_handle_task8",1000,	NULL,3,	UART1_RX_handle_pkt );
 	xTaskCreate((TaskFunction_t)ATTACH_task9,					"attach_task9",		300,	NULL,2,	ATTACH_handle );
-	xTaskCreate((TaskFunction_t)WDG_task10,						"iwdg_task10",		300,	NULL,4,	WDG_handle );
+	xTaskCreate((TaskFunction_t)WDG_task10,						"wwdg_task10",		300,	NULL,4,	WDG_handle );
   
 	/* Start scheduler */
   vTaskStartScheduler();
@@ -359,6 +375,20 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 	}
 }
 
+/**
+  * @brief WWDG callbacks
+  * @param 
+  * @retval None
+  */
+void HAL_WWDG_EarlyWakeupCallback(WWDG_HandleTypeDef* hwwdg)
+{
+  static portBASE_TYPE xHigherPriorityTaskWoken=pdFALSE;
+	
+	/* Prevent unused argument(s) compilation warning */
+  UNUSED(hwwdg);
+		
+	
+}
 
 /**
   * @brief EXTI line detection callbacks
@@ -457,7 +487,7 @@ static void UART2_task1(void const *argument)
       s = PbCommand;
       
       if (strcmp(s, "pbfw") == 0){pbfw();}
-      else if (strcmp(s, "pbsoc") == 0) {pbsoc(RxData1);}
+      else if (strcmp(s, "pbsoc") == 0) {pbsoc();}
       else if (strcmp(s, "pbphsoc") == 0) {pbphsoc(RxData1);}
       else if (strcmp(s, "pbusb") == 0) {pbusb(RxData1);}
       else if (strcmp(s, "pbwrsmb") == 0) {pbwr(RxData1,RxData2);}
@@ -534,13 +564,30 @@ static void CHG_task3(void const *argument)
 {
 	PACK_INFO rptr;	
 	portBASE_TYPE xStatus;
+	uint8_t i;
+	PACK_STATUS last_status;
 	
 	for(;;)
 	{
+		last_status=pack_status;
 		xStatus=xQueueReceive( xQueue_pack_info, &rptr, 3000 );
 		if (xStatus == pdPASS) 
 		{
 			set_pack_status(&rptr);
+			i=0;
+			//pack_status=STATUS_STANDBY;
+		}
+		else
+		{
+			if((pack_status==STATUS_STANDBY)&&(last_status==STATUS_STANDBY))
+			{
+				i++;
+				if(i>3)
+				{
+					pack_status=STATUS_SLEEP;
+					i=0;
+				}
+			}
 		}
 		xEventGroupSetBits(xCreatedEventGroup, TASK3_BIT);
 	}
@@ -629,29 +676,30 @@ static void LED_task5(void const *argument)
 	uint16_t xTicksToWait=500 / portTICK_RATE_MS;	
 	uint8_t pcWriteBuffer[500];
 	
-	//led_flash();
-	led_of_soc(pack_info.PACK_SOC,0);
+	led_flash();
+	//led_of_soc(pack_info.PACK_SOC,0);
 	for(;;)
 	{
 		xStatus=xSemaphoreTake( xCountingSemaphore_key, 3000 );	
 		if(xStatus==pdPASS)
-		{
-			xStatus=xQueueSendToBack( xQueue_pack_info, &pack_info, xTicksToWait );
+		{			
+			xStatus=xQueueSendToBack( xQueue_pack_info, &pack_info, 10 );
 			if( xStatus != pdPASS )
 			{
 				printf("Send to queue error!\n\r");	
 			}	
-			
+				
 			key=HAL_GPIO_ReadPin(KEY_PIN_GPIO_PORT,KEY_PIN);
 			led_of_soc(pack_info.PACK_SOC,key);
 			if(key==0)
 			{		
+				
 				printf("taskname		satatus	priority	freestack	num\r\n");
 				vTaskList((char *)&pcWriteBuffer);
 				printf("%s\r\n", pcWriteBuffer);
 				while(HAL_GPIO_ReadPin(KEY_PIN_GPIO_PORT,KEY_PIN)==0)
 				{
-					vTaskDelay(500);
+					vTaskDelay(100);
 				}
 			}
 		}
@@ -667,7 +715,8 @@ static void LED_task5(void const *argument)
 static void UART1_RX_task6(void const *argument)
 {
 	(void) argument;
-  	
+  uint8_t i;
+	
 	portBASE_TYPE xStatus;
 	uint16_t xTicksToWait=100 / portTICK_RATE_MS;		
 	
@@ -685,8 +734,14 @@ static void UART1_RX_task6(void const *argument)
 			while(xSemaphoreTake( xSemaphore_uart1_int, 3000 )!=pdPASS)
 				xEventGroupSetBits(xCreatedEventGroup, TASK6_BIT);				
 			
-			xStatus=xQueueSendToBack( xQueue_uart1_rx_handle, &RxBuffer_U1, xTicksToWait );
-			printf("task6 uart1 received data\n\r");
+			xStatus=xQueueSendToBack( xQueue_uart1_rx_handle, &RxBuffer_U1, 20 );
+			/*
+			for(i=0;i<RXBUFFERSIZE_U1;i++)
+				printf("%x",*(RxBuffer_U1+i));
+			printf("\n\r");
+			*/
+			printf("task6 rx data\n\r");
+			
 			if( xStatus != pdPASS )
 			{
 				printf("UART1 rx task Send to uart1 rx handel queue error!\n\r");	
@@ -747,6 +802,11 @@ static void UART1_RX_HANDLE_task8(void const *argument)
 	{			
 		while(xQueueReceive(xQueue_uart1_rx_handle, &packet, 3000 )!=pdPASS)
 			xEventGroupSetBits(xCreatedEventGroup, TASK8_BIT);
+		/*
+		for(i=0;i<RXBUFFERSIZE_U1;i++)
+			printf("0x%x,",*(packet+i));
+		*/
+		printf("task8 rx handle\n\r");
 		
 		ack_num=0;
 		uart1_rx_ack_handle(packet,&ack_num, &tx_queue[0],&phone_info);
@@ -771,7 +831,7 @@ static void UART1_RX_HANDLE_task8(void const *argument)
 			
 			pack_info.PHONE_SOC=phone_info.PHONE_SOC;
 			pack_info.PHONE_USB_VOLTAGE=phone_info.EXTPWR_VOLTAGE;
-			xStatus=xQueueSendToBack( xQueue_pack_info, &pack_info, xTicksToWait );
+			xStatus=xQueueSendToBack( xQueue_pack_info, &pack_info, 5 );
 			if( xStatus != pdPASS )
 			{
 				printf("UART1 rx task8 Send to pack info queue error!\n\r");	
@@ -830,13 +890,20 @@ static void WDG_task10(void const *argument)
 	
 	for(;;)
 	{
-		uxBits=xEventGroupWaitBits(xCreatedEventGroup, TASK_BIT_ALL, pdTRUE, pdTRUE, 5000);
+		//xSemaphoreTake( xCountingSemaphore_attach, portMAX_DELAY );
+		while(wdg_count<500)
+		{
+			vTaskDelay(15);
+			HAL_WWDG_Refresh(&WwdgHandle);	
+			wdg_count++;			
+		}
+		uxBits=xEventGroupWaitBits(xCreatedEventGroup, TASK_BIT_ALL, pdTRUE, pdTRUE, 10);
 		if((uxBits&TASK_BIT_ALL)==TASK_BIT_ALL)
 		{
-			printf("...feed dog!\n\r");	
-			if(HAL_IWDG_Refresh(&IwdgHandle)!=HAL_OK)
-				printf("task10 iwdg handle error\n\r");			
+			wdg_count=0;					
 		}
+		else
+			printf("uxbits=0x%x\n\r",uxBits);
 	}
 }
 
@@ -982,7 +1049,7 @@ void uart1_rx_ack_handle(uint8_t *uart_rxdata, uint8_t *queue_num, UART1_TX_QUEU
 	uint8_t i=0,j=0;
 	*queue_num=0;
 	
-	while(i<RXBUFFERSIZE)
+	while(i<RXBUFFERSIZE_U1)
 	{
 		if((*(uart_rxdata+i)==0xaa)&&(*(uart_rxdata+i+1)==0x55))
 		{
@@ -1626,17 +1693,9 @@ void pbadc(void)
 	printf("\n\r");
 }
 
-void pbsoc(uint8_t soc)
-{
-	portBASE_TYPE xStatus;
-	uint16_t xTicksToWait=100 / portTICK_RATE_MS;
-	pack_info.PACK_SOC=soc;
-	printf("PACK soc:%d\n\r",pack_info.PACK_SOC);
-	xStatus=xQueueSendToBack( xQueue_pack_info, &pack_info, xTicksToWait );
-	if( xStatus != pdPASS )
-	{
-		printf("Send to queue error!\n\r");	
-	}
+void pbsoc(void)
+{	
+	printf("PACK soc:%d\n\r",pack_info.PACK_SOC);	
 }
 
 void pbphsoc(uint8_t soc)
@@ -1831,26 +1890,37 @@ void OS_PreSleepProcessing(uint32_t vParameters)
 	
 	vParameters = 0;
 	HAL_NVIC_DisableIRQ(DMA1_Channel1_IRQn);
-	if(pack_status==STATUS_STANDBY)
-	{
+	//BSP_I2C1_CLK_DISABLE();
+	//BSP_I2C2_CLK_DISABLE(); 
+	//BSP_UART1_CLK_DISABLE() ;
+	//BSP_UART2_CLK_DISABLE() ;
+	//BSP_UART3_CLK_DISABLE() ;
+	
+	if(pack_status==STATUS_SLEEP)
+	{		
+		//HAL_PWREx_EnterSTOP1Mode(PWR_STOPENTRY_WFI);
+		HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
 		
-		HAL_PWREx_EnterSTOP1Mode(PWR_STOPENTRY_WFI);
-		//HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
 	}
-	else
-		/* Enter Sleep Mode , wake up is done once jumper is put between PA.12 (Arduino D2) and GND */
-    HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+
 }
 
 void OS_PostSleepProcessing(uint32_t vParameters)
 {
 	(void)vParameters;
-	if(pack_status==STATUS_STANDBY)
+	HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);	
+	//BSP_I2C1_CLK_ENABLE();
+	//BSP_I2C2_CLK_ENABLE(); 
+	//BSP_UART1_CLK_ENABLE() ;
+	//BSP_UART2_CLK_ENABLE() ;
+	//BSP_UART3_CLK_ENABLE() ;
+	
+	if(pack_status==STATUS_SLEEP)
 	{
 		SYSCLKConfig_STOP();
 		
 	}
-	HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+	
 }
 
 /**

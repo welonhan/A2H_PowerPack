@@ -80,6 +80,7 @@ typedef struct
 	uint8_t 	PHONE_SOC;
 	uint8_t 	PACK_SOC;
 	uint16_t	PHONE_USB_VOLTAGE;
+	
 }PACK_INFO;
 
 typedef struct
@@ -210,7 +211,8 @@ typedef enum
 	STATUS_USB2BOTH,
 	STATUS_USB2PHONE,
 	STATUS_BOOST2PHONE,
-	STATUS_PHONE2PACK
+	STATUS_PHONE2PACK,
+	STATUS_SLEEP
 }PACK_STATUS;
 
 
@@ -235,7 +237,7 @@ PACK_STATUS get_pack_status(PACK_INFO *ptr);
 static void SYSCLKConfig_STOP(void);
 void DecodeReception(uint16_t *d1,uint16_t *d2);
 void pbfw(void);
-void pbsoc(uint8_t soc);
+void pbsoc(void);
 void pbphsoc(uint8_t soc);
 void pbusb(uint16_t usb_vol);
 void pbwr(uint16_t addr, uint16_t data);
