@@ -377,6 +377,14 @@ void HAL_WWDG_MspInit(WWDG_HandleTypeDef *hwwdg)
 	//HAL_NVIC_SetPriority(WWDG_IRQn, 6, 0);
 	//HAL_NVIC_EnableIRQ(WWDG_IRQn);
 }
+
+void HAL_CRC_MspInit(CRC_HandleTypeDef *hcrc)
+{
+  /* Prevent unused argument(s) compilation warning */
+  UNUSED(hcrc);
+
+  __HAL_RCC_CRC_CLK_ENABLE();
+}
 /**
   * @}
   */

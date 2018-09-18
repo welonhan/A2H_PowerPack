@@ -85,6 +85,8 @@ IWDG_HandleTypeDef 						IwdgHandle;
 
 WWDG_HandleTypeDef 						WwdgHandle;
 
+CRC_HandleTypeDef 						CrcHandle;
+
 I2C_HandleTypeDef 						powerpack_I2c1,powerpack_I2c2;
 uint32_t 											I2c1Timeout = BSP_I2C1_TIMEOUT_MAX;    /*<! Value of Timeout when I2C1 communication fails */
 uint32_t 											I2c2Timeout = BSP_I2C2_TIMEOUT_MAX;    /*<! Value of Timeout when I2C1 communication fails */
@@ -188,6 +190,7 @@ int main(void)
 	}
 	
 	pack_info.PACK_SOC=BSP_CW_Get_Capacity(pack_info.USB);
+	/*
 	if(in_state.DCIN==1)
 	{
 		pack_info.PHONE_USB=1;		
@@ -196,16 +199,14 @@ int main(void)
 	{
 		pack_info.PHONE_USB=0;		
 	}	
-	
+	*/
 	set_pack_status(&pack_info);
 	if(pack_info.USB==1)
 	{
 		delayms(3000);
 		BSP_SMB_USBIN_Status(&usb_type);
 		usb_charging(usb_type);
-	}
-	
-	
+	}	
 	
 	/* Enable Power Clock */
   __HAL_RCC_PWR_CLK_ENABLE();
@@ -249,10 +250,7 @@ int main(void)
 	
 	xCreatedEventGroup=xEventGroupCreate();
 	if(xCreatedEventGroup==NULL)
-			printf("xCreatedEventGroup create fail\n\r");	
-	
-	BSP_WWDG_Init();
-	wdg_count=0;
+			printf("xCreatedEventGroup create fail\n\r");		
 	
 	xTaskCreate((TaskFunction_t)UART2_task1,					"uart2_task1",		300,	NULL,2,	UART2_handle );
 	xTaskCreate((TaskFunction_t)ADC_task2,						"adc_task2",			300,	NULL,2,	ADC_handle );
@@ -694,7 +692,7 @@ static void LED_task5(void const *argument)
 			if(key==0)
 			{		
 				
-				printf("taskname		satatus	priority	freestack	num\r\n");
+				printf("taskname		status	priority	freestack	num\r\n");
 				vTaskList((char *)&pcWriteBuffer);
 				printf("%s\r\n", pcWriteBuffer);
 				while(HAL_GPIO_ReadPin(KEY_PIN_GPIO_PORT,KEY_PIN)==0)
@@ -887,7 +885,9 @@ static void ATTACH_task9(void const *argument)
 static void WDG_task10(void const *argument)
 {	
 	EventBits_t uxBits;
-	
+	vTaskDelay(200);
+	BSP_WWDG_Init();
+	wdg_count=0;
 	for(;;)
 	{
 		//xSemaphoreTake( xCountingSemaphore_attach, portMAX_DELAY );
@@ -1071,6 +1071,7 @@ void uart1_rx_ack_handle(uint8_t *uart_rxdata, uint8_t *queue_num, UART1_TX_QUEU
 					phone_current=(phone_current<<8)+*(rxdata+8);
 					phone_soc=*(rxdata+9);
 					info->PHONE_SOC=phone_soc;
+					//info->EXTPWR_VOLTAGE=phone_voltage;
 					
 					gpio=*(rxdata+10);
 					rx_crc=*(rxdata+11);
@@ -1205,7 +1206,15 @@ void uart1_rx_ack_handle(uint8_t *uart_rxdata, uint8_t *queue_num, UART1_TX_QUEU
 	}//while
 }
 
+uint16_t crc16(uint8_t *data, uint8_t data_len)
+{
+	uint16_t crc_out=0x0000;
+	
+	crc_out=	HAL_CRC_Calculate(&CrcHandle, (uint32_t *)data, data_len);
+	return crc_out;
+}
 
+/*
 uint16_t crc16(uint8_t *data, uint8_t data_len)
 {
 	uint16_t crc_in=0x0000;
@@ -1228,7 +1237,7 @@ uint16_t crc16(uint8_t *data, uint8_t data_len)
 	invert_uint16(&crc_in,&crc_in);
 	return crc_in;
 }
-
+*/
 void invert_uint8(uint8_t *dbuff, uint8_t *srcbuff)
 {
 	uint8_t i;

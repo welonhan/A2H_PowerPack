@@ -20,6 +20,7 @@ extern IWDG_HandleTypeDef IwdgHandle;
 
 extern WWDG_HandleTypeDef 						WwdgHandle;
 
+extern CRC_HandleTypeDef 						CrcHandle;
 /**
   * @brief  Configures LED GPIO.
   * @param  Led: Specifies the Led to be configured. 
@@ -952,6 +953,25 @@ void BSP_OUTPUT_GPIO_Init(void)
 	HAL_GPIO_WritePin(CHG_PATH_EN_PIN_GPIO_PORT, 		CHG_PATH_EN_PIN,		GPIO_PIN_RESET);
 }
 
+void BSP_CRC_Init(void)
+{
+	CrcHandle.Instance											=CRC;
+	
+	CrcHandle.Init.DefaultPolynomialUse    = DEFAULT_POLYNOMIAL_DISABLE;	
+	CrcHandle.Init.GeneratingPolynomial			=0x1021;
+	CrcHandle.Init.CRCLength								=CRC_POLYLENGTH_16B;	
+	CrcHandle.Init.DefaultInitValueUse     = DEFAULT_INIT_VALUE_DISABLE;
+	
+	CrcHandle.Init.InitValue								=0x0000;
+	CrcHandle.Init.InputDataInversionMode		=CRC_INPUTDATA_INVERSION_BYTE;
+	CrcHandle.Init.OutputDataInversionMode	=CRC_OUTPUTDATA_INVERSION_ENABLE;
+	
+	 CrcHandle.InputDataFormat 							= CRC_INPUTDATA_FORMAT_BYTES;
+	
+	if(HAL_CRC_Init(&CrcHandle)==HAL_OK)
+		printf("CRC init ok!\n\r");	
+}
+
 void BSP_POWER_PACK_Init(void)
 {
 	
@@ -989,7 +1009,7 @@ void BSP_POWER_PACK_Init(void)
  	BSP_KEY_IRQHandler_Config();
 	printf("KEY init ok!\n\r");
 	BSP_EXIT15_10_IRQHandler_Config();
-	
+	BSP_CRC_Init();
 }
 
 
